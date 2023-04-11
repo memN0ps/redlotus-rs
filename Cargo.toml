@@ -1,0 +1,11 @@
+[package]
+name = "bootkit"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4" # https://crates.io/crates/log
+uefi = "0.20.0" # https://crates.io/crates/uefi
+uefi-services = "0.17.0" # https://crates.io/crates/uefi-services
