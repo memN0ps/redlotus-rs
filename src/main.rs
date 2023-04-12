@@ -31,11 +31,9 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // 1. Locate Windows EFI Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi)
     //
 
-    let boot_services = system_table.boot_services();
-    boot::get_current_image_path(boot_services).unwrap();
+    // Gets the Windows EFI Boot Manager device as slice of bytes
+    let _bootmgr_slice = boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &system_table).expect("Failed to get device path");
 
-    // Locate the Windows EFI bootmgr
-    //boot::get_windows_boot_mgr(boot_services).unwrap();
 
     //
     // 2. Set BootCurrent to Windows Boot Manager (bootmgr) option
@@ -47,7 +45,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // 3. Load the Windows EFI Boot Manager (bootmgr)
     //
 
-    //todo: 
+    //todo:
     //let loaded_image_handle = boot_services.load_image(boot_services.image_handle(), source);
 
     //
@@ -60,7 +58,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // 5. Start Windows EFI Boot Manager (bootmgr)
     //
 
-    // todo: 
+    // todo:
     //boot_services.start_image(loaded_image_handle);
 
     // Make the system pause for 10 seconds

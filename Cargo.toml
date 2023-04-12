@@ -1,5 +1,5 @@
 [package]
-name = "bootkit"
+name = "application"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 log = "0.4" # https://crates.io/crates/log
-uefi = "0.20.0" # https://crates.io/crates/uefi
+uefi = { version = "0.20.0", features = ["alloc"] } # https://crates.io/crates/uefi
 uefi-services = "0.17.0" # https://crates.io/crates/uefi-services
