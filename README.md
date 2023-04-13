@@ -95,3 +95,5 @@ load bootkit.efi
 * https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
 * https://securelist.com/cosmicstrand-uefi-firmware-rootkit/106973/
+
+* https://github.com/nix-community/lanzaboote/

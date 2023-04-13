@@ -32,8 +32,11 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     //
 
     // Gets the Windows EFI Boot Manager device as slice of bytes
-    let _bootmgr_slice = boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &system_table).expect("Failed to get device path");
-
+    let bootmgr_data =
+        boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &system_table)
+            .expect("Failed to get device path");
+    log::info!("Pointer: {:p}", bootmgr_data.as_ptr());
+    log::info!("Size: {}", bootmgr_data.len());
 
     //
     // 2. Set BootCurrent to Windows Boot Manager (bootmgr) option
