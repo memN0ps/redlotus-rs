@@ -1,9 +1,11 @@
-use uefi::proto::media::{
-    file::{File, FileAttribute, FileMode, RegularFile},
-    fs::SimpleFileSystem,
-};
-use uefi::table::{Boot, SystemTable};
 use uefi::CStr16;
+use uefi::{
+    prelude::BootServices,
+    proto::media::{
+        file::{File, FileAttribute, FileMode, RegularFile},
+        fs::SimpleFileSystem,
+    },
+};
 
 use alloc::vec::Vec;
 extern crate alloc;
@@ -11,11 +13,8 @@ extern crate alloc;
 /// Gets the Windows EFI Boot Manager device as vector of bytes
 pub fn get_windows_bootmgr_device(
     path: &str,
-    system_table: &SystemTable<Boot>,
+    boot_services: &BootServices,
 ) -> uefi::Result<Vec<u8>> {
-    // Access boot services
-    let boot_services = system_table.boot_services();
-
     let mut buf = [0u16; 256];
 
     // Convert a &str to a &CStr16, backed by a buffer. (Can also use cstr16!() macro)
