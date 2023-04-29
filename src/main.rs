@@ -39,7 +39,11 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &boot_services)
             .expect("Failed to get device path");
     log::info!("Found Windows EFI Boot Manager device");
-    log::info!("Pointer: {:p} Size: {}", bootmgr_data.as_ptr(), bootmgr_data.len());
+    log::info!(
+        "Pointer: {:p} Size: {}",
+        bootmgr_data.as_ptr(),
+        bootmgr_data.len()
+    );
 
     //
     // 2. Set BootCurrent to Windows Boot Manager (bootmgr) option
@@ -54,13 +58,15 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     log::info!("Loading Windows Boot Manager image into memory");
     // Load an EFI image into memory and return a Handle to the image.
     // There are two ways to load the image: by copying raw image data from a source buffer, or by loading the image via the SimpleFileSystem protocol
-    let bootmgr_handle = boot_services.load_image(
-        image_handle,
-        LoadImageSource::FromBuffer {
-            buffer: &bootmgr_data,
-            file_path: None,
-        },
-    ).expect("Failed to load image");
+    let bootmgr_handle = boot_services
+        .load_image(
+            image_handle,
+            LoadImageSource::FromBuffer {
+                buffer: &bootmgr_data,
+                file_path: None,
+            },
+        )
+        .expect("Failed to load image");
 
     log::info!("Successfully loaded Windows Boot Manager image into memory");
 
