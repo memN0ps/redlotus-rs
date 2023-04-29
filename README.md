@@ -44,21 +44,21 @@ The image below shows how Legacy and UEFI boot works.
 
 1. There are a few ways to achieve the same objective as shown below:
 
-a) Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows OS loader), which transfers execution to the OS loader (`winload.efi`) or 
+    - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows OS loader), which transfers execution to the OS loader (`winload.efi`) or 
 
-b) `ImgArchStartBootApplication` to catch the moment when the Windows OS loader (`winload.efi`) is loaded in the memory but still has not been executed or
+    - `ImgArchStartBootApplication` to catch the moment when the Windows OS loader (`winload.efi`) is loaded in the memory but still has not been executed or
 
-c) Hook/Detour `ExitBootServices`, which is UEFI firmware service that signals the end of the boot process and transitions the system from the firmware environment to the operating system environment.
+    - Hook/Detour `ExitBootServices`, which is UEFI firmware service that signals the end of the boot process and transitions the system from the firmware environment to the operating system environment.
     
-    1.2. The following is required if UEFI Secure Boot is enabled:
+        1.1. The following is required if UEFI Secure Boot is enabled:
 
-    - Patch `BmFwVerifySelfIntegrity` to bypass self integrity checks.
-    - Execute `bcdedit /set {bootmgr} nointegritychecks on` to skip the integrity checks.
-    - Inject `bcdedit /set {bootmgr} nointegritychecks on` option dynamically by modifying the `LoadOptions`.
+        - Patch `BmFwVerifySelfIntegrity` to bypass self integrity checks.
+        - Execute `bcdedit /set {bootmgr} nointegritychecks on` to skip the integrity checks.
+        - Inject `bcdedit /set {bootmgr} nointegritychecks on` option dynamically by modifying the `LoadOptions`.
 
-    1.3. The following is required to allocate an additional memory buffer for the malicious kernel driver, because as a UEFI Application it will be unloaded from memory after returning from its entry point function.
-    
-    - `BlImgAllocateImageBuffer` or `BlMmAllocateVirtualPages` in the Windows OS loader (`winload.efi`).
+        1.2. The following is required to allocate an additional memory buffer for the malicious kernel driver, because as a UEFI Application it will be unloaded from memory after returning from its entry point function.
+        
+        - `BlImgAllocateImageBuffer` or `BlMmAllocateVirtualPages` in the Windows OS loader (`winload.efi`).
 
 2. Hook/detour `OslArchTransferToKernel` in `winload.efi` (Windows OS loader), which transfers execution to the Windows Kernel (`ntoskrnl.exe`) to catch the moment when the OS kernel and some of the system drivers are already loaded in the memory, but still haven’t been executed, which is a perfect moment to perform more in-memory patching.
     
