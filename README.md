@@ -60,7 +60,7 @@ The image below shows how Legacy and UEFI boot works.
         
         - `BlImgAllocateImageBuffer` or `BlMmAllocateVirtualPages` in the Windows OS loader (`winload.efi`).
 
-2. Hook/detour `OslArchTransferToKernel` in `winload.efi` (Windows OS loader), which transfers execution to the Windows Kernel (`ntoskrnl.exe`) to catch the moment when the OS kernel and some of the system drivers are already loaded in the memory, but still haven’t been executed, which is a perfect moment to perform more in-memory patching.
+2. Hook/detour `OslArchTransferToKernel` in `winload.efi` (Windows OS loader), which transfers execution to the Windows Kernel (`ntoskrnl.exe`) to catch the moment when the OS kernel and some of the system drivers are already loaded in the memory, but still not been executed, which is a perfect moment to perform more in-memory patching.
     
     - Patch `SepInitializeCodeIntegrity`, a parameter to `CiInitialize` in `ntoskrnl.exe` to disable Driver Signature Enforcement (DSE).
     - Patch `KeInitAmd64SpecificState` in `ntoskrnl.exe` to disable PatchGuard.
@@ -68,13 +68,13 @@ The image below shows how Legacy and UEFI boot works.
 
 ## Usage
 
-A UEFI Bootkit works under one or more of the following conditions:
+The UEFI Bootkit works under one or more of the following conditions:
 
-a) Secure boot must be off 
+a) Turn off secure boot
 
-b) Install your secure boot keys
+b) Install your own secure boot keys and keep secure boot on
 
-c) Bring your vulnerable binary (BYOVB) that is not in the "deny list." to exploit a 1-day to bypass secure boot.
+c) Bring your vulnerable binary (BYOVB) that is not in the "deny list" to exploit a 1-day and bypass secure boot.
 
 d) Exploit a 0-day to bypass secure boot.
 
@@ -85,7 +85,7 @@ Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located i
 - Convert our bootkit to shellcode
 - Find `bootmgfw.efi` (Windows Boot Manager)
 - Add `.efi` section to `bootmgfw.efi` (Windows Boot Manager)
-- Inject/copy bootkit shellcode.
+- Inject/copy bootkit shellcode to the `.efi` section in `bootmgfw.efi`
 - Change entry point of the `bootmgfw.efi` (Windows Boot Manager) to `.efi` bootkit shellcode
 - Reboot
 
