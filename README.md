@@ -1,10 +1,8 @@
 # A UEFI Bootkit in Rust
 
-A UEFI Bootkit in Rust.
+A UEFI Bootkit in Rust. 
 
-## Architecture
-
-TODO
+**Work in progress (W.I.P)**
 
 ## Usage
 
@@ -33,11 +31,11 @@ USB:.
 
 4. Boot from the USB drive
 
-* VMware Workstation: `VM -> Settings -> Hardware -> Add -> Hard Disk -> Next -> SCSI or NVMe (Recommended) -> Next -> Use a physical disk (for advanced users) -> Next -> Device: PhysicalDrive1 and Usage: Use entire disk -> Next -> Finish.` 
+    * VMware Workstation: `VM -> Settings -> Hardware -> Add -> Hard Disk -> Next -> SCSI or NVMe (Recommended) -> Next -> Use a physical disk (for advanced users) -> Next -> Device: PhysicalDrive1 and Usage: Use entire disk -> Next -> Finish.` 
 
-* Start VM by clicking `Power On to Firmware`
+    * Start VM by clicking `Power On to Firmware`
 
-* Select Internal Shell (Unsupported option) or EFI Vmware Virtual SCSI Hard Drive (1.0)
+    * Select Internal Shell (Unsupported option) or EFI Vmware Virtual SCSI Hard Drive (1.0)
 
 5. An UEFI shell should start, change directory to your USB (`FS1` should be the USB since we are booting from it) and list files:
 
@@ -49,18 +47,22 @@ ls
 6. You should see file `bootkit.efi`, if you do, load it:
 
 ```
-load bootkit.efi
+bootkit.efi
 ```
 
-7. Now you should see output from rainbow. If it was successful, exit and boot into Windows (change to Windows boot media - usually `FS0` - and run `\EFI\Boot\bootx64.efi`)
+7. Now you should see output from the bootkit.efi application. If it is successful, Windows should boot automatically otherwise, exit and boot into Windows (change to Windows boot media - usually `FS0` - and run `\EFI\Microsoft\Boot\bootmgfw.efi` or `\EFI\Boot\bootx64.efi`)
 
 ## Credits / References / Thanks / Motivation
+
+Special thanks to [btbd](https://github.com/btbd), [ajkhoury](https://github.com/ajkhoury), [Mattiwatti](https://github.com/Mattiwatti), [mrexodia](https://github.com/mrexodia), [SamuelTulach](https://github.com/SamuelTulach), [realoriginal](https://github.com/realoriginal), [Cr4sh](https://github.com/Cr4sh), [matrosov](https://github.com/matrosov), [not-matthias](https://github.com/not-matthias) and [welivesecurity](https://www.welivesecurity.com/)
 
 * https://github.com/btbd/umap/
 
 * https://github.com/ajkhoury/UEFI-Bootkit/
 
 * https://github.com/Mattiwatti/EfiGuard
+
+* https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 
 * https://github.com/SamuelTulach/rainbow
 
@@ -69,6 +71,12 @@ load bootkit.efi
 * https://github.com/realoriginal/bootlicker
 
 * https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
+
+* Rootkits and Bootkits: https://nostarch.com/rootkits by [Alex Matrosov](https://twitter.com/matrosov)
+
+* https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
+
+* https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
 * https://github.com/rust-osdev/uefi-rs
 
@@ -89,10 +97,6 @@ load bootkit.efi
 * https://github.com/tianocore/edk2
 
 * https://github.com/pbatard/UEFI-Shell
-
-* https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
-
-* https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
 * https://securelist.com/cosmicstrand-uefi-firmware-rootkit/106973/
 

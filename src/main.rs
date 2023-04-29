@@ -54,7 +54,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     log::info!("Loading Windows Boot Manager image into memory");
     // Load an EFI image into memory and return a Handle to the image.
     // There are two ways to load the image: by copying raw image data from a source buffer, or by loading the image via the SimpleFileSystem protocol
-    let _loaded_image_handle = boot_services.load_image(
+    let bootmgr_handle = boot_services.load_image(
         image_handle,
         LoadImageSource::FromBuffer {
             buffer: &bootmgr_data,
@@ -68,14 +68,14 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // 4. Set up the hook chain from bootmgr -> windload -> ntoskrnl
     //
 
-    // todo: setup_hooks()
+    log::info!("Setting up hooks bootmgr -> windload -> ntoskrnl");
+    boot::setup_hooks(bootmgr_handle, &boot_services);
 
     //
     // 5. Start Windows EFI Boot Manager (bootmgr)
     //
 
-    // todo:
-    //boot_services.start_image(loaded_image_handle);
+    //boot_services.start_image(bootmgr_handle);
 
     // Make the system pause for 10 seconds
     log::info!("Stalling the processor for 20 seconds");
