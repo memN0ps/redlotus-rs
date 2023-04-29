@@ -2,7 +2,7 @@
 
 **Note: This project is incomplete and work is in progress (W.I.P).**
 
-While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system, or even execute shellcode in the kernel. It's important to recognize the potential of Rust and not underestimate its power. 
+While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system, or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power. 
 
 Feel free to check out my Windows Kernel Rootkit and Blue Pill Hypervisor in pure Rust: 
 
@@ -26,6 +26,11 @@ This project is mostly inspired by:
 * [Secret Club's article on Bootkitting Windows Sandbox by mrexodia](https://secret.club/2022/08/29/bootkitting-windows-sandbox.html)
 
 * [bootlicker by Austin Hudson (realoriginal / ilove2pwn_ / secidiot / mumbai) ](https://github.com/realoriginal/bootlicker)
+
+
+## Features 
+
+TODO
 
 ## Description
 
