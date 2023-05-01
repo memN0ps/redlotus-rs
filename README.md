@@ -1,6 +1,6 @@
 # A UEFI Bootkit in Rust
 
-**Note: This project is incomplete and work is in progress (W.I.P).**
+**Note: This project is incomplete and work is in progress (W.I.P). A lot of things could be incorrect until this is complete.**
 
 While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system, or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power. 
 
@@ -8,25 +8,6 @@ Feel free to check out my Windows Kernel Rootkit and Blue Pill Hypervisor in pur
 
 * https://github.com/memN0ps/rootkit-rs
 * https://github.com/memN0ps/hypervisor-rs
-
-This project is mostly inspired by:
-
-* [BlackLotus UEFI Bootkit](https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/)
-
-* [ESPecter Bootkit](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/)
-
-* [Rootkits and Bootkits by Alex Matrosov (matrosov)](https://nostarch.com/rootkits)
-
-* [umap by btbd](https://github.com/btbd/umap/)
-
-* [UEFI-Bootkit by  Aidan Khoury (ajkhoury)](https://github.com/ajkhoury/UEFI-Bootkit/)
-
-* [EfiGuard by Matthijs Lavrijsen (Mattiwatti)](https://github.com/Mattiwatti/EfiGuard)
-
-* [Secret Club's article on Bootkitting Windows Sandbox by mrexodia](https://secret.club/2022/08/29/bootkitting-windows-sandbox.html)
-
-* [bootlicker by Austin Hudson (realoriginal / ilove2pwn_ / secidiot / mumbai) ](https://github.com/realoriginal/bootlicker)
-
 
 ## Features 
 
@@ -42,7 +23,7 @@ The image below shows how Legacy and UEFI boot works.
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
 
-1. There are a few ways to achieve the same objective as shown below:
+1. AFAIK there are a few ways to achieve the same objective as shown below:
 
     - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows OS loader), which transfers execution to the OS loader (`winload.efi`) or 
 
@@ -140,7 +121,7 @@ bootkit.efi
 
 ## Credits / References / Thanks / Motivation
 
-Special thanks to [btbd](https://github.com/btbd), [ajkhoury](https://github.com/ajkhoury), [Mattiwatti](https://github.com/Mattiwatti), [mrexodia](https://github.com/mrexodia), [SamuelTulach](https://github.com/SamuelTulach), [realoriginal](https://github.com/realoriginal), [Cr4sh](https://github.com/Cr4sh), [matrosov](https://github.com/matrosov), [not-matthias](https://github.com/not-matthias) and [welivesecurity](https://www.welivesecurity.com/)
+* https://github.com/realoriginal/bootlicker
 
 * https://github.com/btbd/umap/
 
@@ -153,8 +134,6 @@ Special thanks to [btbd](https://github.com/btbd), [ajkhoury](https://github.com
 * https://github.com/SamuelTulach/rainbow
 
 * https://www.unknowncheats.me/forum/anti-cheat-bypass/452202-rainbow-efi-bootkit-hwid-spoofer-smbios-disk-nic.html
-
-* https://github.com/realoriginal/bootlicker
 
 * https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
 

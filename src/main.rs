@@ -35,9 +35,11 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     log::info!("Finding Windows EFI Boot Manager (\\EFI\\Microsoft\\Boot\\bootmgfw.efi) device");
     // Gets the Windows EFI Boot Manager device as slice of bytes
-    let bootmgr_data =
-        boot::get_windows_bootmgr_device("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", &boot_services)
-            .expect("Failed to get device path");
+    let bootmgr_data = boot::utils::get_windows_bootmgr_device(
+        "\\EFI\\Microsoft\\Boot\\bootmgfw.efi",
+        &boot_services,
+    )
+    .expect("Failed to get device path");
     log::info!("Found Windows EFI Boot Manager device");
     log::info!(
         "Pointer: {:p} Size: {}",
@@ -75,13 +77,13 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     //
 
     log::info!("Setting up hooks bootmgr -> windload -> ntoskrnl");
-    boot::setup_hooks(bootmgr_handle, &boot_services);
+    boot::hooks::setup_hooks(&bootmgr_handle, &boot_services);
 
     //
     // 5. Start Windows EFI Boot Manager (bootmgr)
     //
 
-    //boot_services.start_image(bootmgr_handle);
+    //boot_services.start_image(bootmgr_handle).expect("Failed to start image");
 
     // Make the system pause for 10 seconds
     log::info!("Stalling the processor for 20 seconds");
