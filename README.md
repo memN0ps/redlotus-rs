@@ -9,13 +9,13 @@ Feel free to check out my Windows Kernel Rootkit and Blue Pill Hypervisor in pur
 * https://github.com/memN0ps/rootkit-rs
 * https://github.com/memN0ps/hypervisor-rs
 
-## Features 
+## Features
 
-TODO
+* Manually Map a Windows kernel driver and/or blue-pill (type-2) hypervisor driver (TODO)
 
 ## Description
 
-A kernel driver can be loaded during boot using a bootkit. A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader.
+A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections.
 
 The image below shows how Legacy and UEFI boot works.
 
@@ -49,25 +49,23 @@ The image below shows how Legacy and UEFI boot works.
 
 ## Usage
 
-The UEFI Bootkit works under one or more of the following conditions:
+A UEFI Bootkit works under one or more of the following conditions:
 
-a) Turn off secure boot
+- Secure Boot is disabled on the machine, so no vulnerabilities are required to exploit it. (**Supported by this project**).
 
-b) Install your own secure boot keys and keep secure boot on
+- Exploiting a known flaw in the UEFI firmware to disable Secure Boot in the case of an out-of-date firmware version or a product no longer supported, including the Bring Your Own Vulnerable Binary (BYOVB) technique to bring copies of vulnerable binaries to the machines to exploit a vulnerability or vulnerabilities and bypass Secure Boot on up-to-date UEFI systems (1-day/one-day).
 
-c) Bring your vulnerable binary (BYOVB) that is not in the "deny list" to exploit a 1-day and bypass secure boot.
-
-d) Exploit a 0-day to bypass secure boot.
+- Exploiting an unspecified flaw in the UEFI firmware to disable Secure Boot (0-day/zero-day vulnerability).
 
 ### Usage 1: Infect Windows Boot Manager `bootmgfw.efi` on Disk (Unsupported)
 
-Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi` or `C:\Windows\Boot\EFI\bootmgfw.efi` as shown below:
+Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi` (`C:\Windows\Boot\EFI\bootmgfw.efi`. Modification of the bootloader includes adding a new section called .efi to the Windows Boot Manager `bootmgfw.efi`, and changing the executable's entry point address so program flow jumps to the beginning of the added section as shown below:
 
-- Convert our bootkit to shellcode
-- Find `bootmgfw.efi` (Windows Boot Manager)
+- Convert bootkit to position-independent code (PIC) or shellcode
+- Find `bootmgfw.efi` (Windows Boot Manager) located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi`
 - Add `.efi` section to `bootmgfw.efi` (Windows Boot Manager)
-- Inject/copy bootkit shellcode to the `.efi` section in `bootmgfw.efi`
-- Change entry point of the `bootmgfw.efi` (Windows Boot Manager) to `.efi` bootkit shellcode
+- Inject or copy bootkit shellcode to the `.efi` section in `bootmgfw.efi` (Windows Boot Manager)
+- Change entry point of the `bootmgfw.efi` (Windows Boot Manager) to newly added `.efi` section bootkit shellcode
 - Reboot
 
 ### Usage 2: Execute UEFI Bootkit via UEFI Shell (Supported)
@@ -97,6 +95,8 @@ USB:.
 
 4. Boot from the USB drive
 
+    4.1. The following is required for VMware Workstation:
+
     * VMware Workstation: `VM -> Settings -> Hardware -> Add -> Hard Disk -> Next -> SCSI or NVMe (Recommended) -> Next -> Use a physical disk (for advanced users) -> Next -> Device: PhysicalDrive1 and Usage: Use entire disk -> Next -> Finish.` 
 
     * Start VM by clicking `Power On to Firmware`
@@ -116,7 +116,7 @@ ls
 bootkit.efi
 ```
 
-7. Now you should see output from the bootkit.efi application. If it is successful, Windows should boot automatically otherwise, exit and boot into Windows (change to Windows boot media - usually `FS0` - and run `\EFI\Microsoft\Boot\bootmgfw.efi` or `\EFI\Boot\bootx64.efi`)
+7. Now you should see output from the `bootkit.efi` application. If it is successful, Windows should boot automatically.
 
 
 ## Credits / References / Thanks / Motivation
