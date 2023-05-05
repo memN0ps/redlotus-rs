@@ -121,37 +121,39 @@ bootkit.efi
 
 ## Credits / References / Thanks / Motivation
 
-* https://github.com/realoriginal/bootlicker
+* Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel)
 
-* https://github.com/btbd/umap/
+* Austin Hudson: https://github.com/realoriginal/bootlicker
 
-* https://github.com/ajkhoury/UEFI-Bootkit/
+* BTBD: https://github.com/btbd/umap/
 
-* https://github.com/Mattiwatti/EfiGuard
+* Aidan Khoury: https://github.com/ajkhoury/UEFI-Bootkit/
 
-* https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
+* Matthijs Lavrijsen: https://github.com/Mattiwatti/EfiGuard
 
-* https://github.com/SamuelTulach/rainbow
+* Samuel Tulach: https://github.com/SamuelTulach/rainbow
 
-* https://www.unknowncheats.me/forum/anti-cheat-bypass/452202-rainbow-efi-bootkit-hwid-spoofer-smbios-disk-nic.html
+* MrExodia: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 
-* https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
+* UnknownCheats: https://www.unknowncheats.me/forum/anti-cheat-bypass/452202-rainbow-efi-bootkit-hwid-spoofer-smbios-disk-nic.html
 
-* Rootkits and Bootkits: https://nostarch.com/rootkits by [Alex Matrosov](https://twitter.com/matrosov)
+* Cr4sh: https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
 
-* https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
+* Alex Matrosov: Rootkits and Bootkits: https://nostarch.com/rootkits by [Alex Matrosov](https://twitter.com/matrosov)
 
-* https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
+* Welivesecurity: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
 
-* https://github.com/rust-osdev/uefi-rs
+* Welivesecurity: https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
-* https://github.com/rust-osdev/bootloader
+* rust-osdev: https://github.com/rust-osdev/uefi-rs
 
-* https://crates.io/crates/uefi
+* rust-osdev: https://github.com/rust-osdev/bootloader
 
-* https://docs.rs/uefi/latest/
+* rust-osdev: https://crates.io/crates/uefi
 
-* https://rust-osdev.github.io/uefi-rs/HEAD/
+* rust-osdev: https://docs.rs/uefi/latest/
+
+* rust-osdev: https://rust-osdev.github.io/uefi-rs/HEAD/
 
 * https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/bcd-system-store-settings-for-uefi?view=windows-11
 
