@@ -1,9 +1,8 @@
 use core::ptr::copy_nonoverlapping;
 use core::slice;
-use uefi::proto::loaded_image::LoadedImage;
-use uefi::proto::media::file::FileInfo;
-use uefi::table::boot::{LoadImageSource, MemoryType};
-use uefi::{cstr16, Handle};
+use uefi::proto::media::file::{RegularFile};
+use uefi::table::boot::LoadImageSource;
+use uefi::{Handle, CStr16};
 use uefi::{
     prelude::BootServices,
     proto::media::{
@@ -15,41 +14,57 @@ use uefi::{
 use alloc::vec::Vec;
 extern crate alloc;
 
-/// Load Windows Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi) by buffer using load_image and return a handle
-pub fn load_windows_boot_manager_by_buffer(boot_services: &BootServices) -> uefi::Result<Handle> {
-    let cuurent_image_handle = boot_services.image_handle();
-    let load_image_protocol =
-        boot_services.open_protocol_exclusive::<LoadedImage>(cuurent_image_handle)?;
+/// Load the Windows EFI Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi) and return a handle to it
+pub fn load_windows_boot_manager(path: &str, boot_services: &BootServices) -> uefi::Result<Handle> {
+    let mut buf = [0u16; 256];
 
-    let mut simple_file_system_protocol =
-        boot_services.open_protocol_exclusive::<SimpleFileSystem>(load_image_protocol.device())?;
-    let mut directory = simple_file_system_protocol.open_volume()?;
+    // Convert a &str to a &CStr16, backed by a buffer. (Can also use cstr16!() macro)
+    let filename = CStr16::from_str_with_buf(path, &mut buf).unwrap();
 
-    let bootmgfw_path = cstr16!(r"\EFI\Microsoft\Boot\bootmgfw.efi");
-    let mut bootmgfw_handle =
-        directory.open(bootmgfw_path, FileMode::Read, FileAttribute::READ_ONLY)?;
+    // Returns all the handles implementing a certain protocol.
+    // FS0 is the first handle, which is the EFI System Partition (ESP) containing the windows boot manager
+    let handle = *boot_services.find_handles::<SimpleFileSystem>()?.first().unwrap();
 
-    let mut file_info_bufffer = [0; 128];
-    let file_info = bootmgfw_handle
-        .get_info::<FileInfo>(&mut file_info_bufffer)
-        .unwrap();
+    // Open a protocol interface for a handle in exclusive mode.
+    let mut file_system = boot_services.open_protocol_exclusive::<SimpleFileSystem>(handle)?;
 
-    let file_size = file_info.file_size() as usize;
-    let memory_pool = boot_services.allocate_pool(MemoryType::LOADER_DATA, file_size)?;
-    let bootmgfw_data =
-        unsafe { core::slice::from_raw_parts_mut(memory_pool as *mut u8, file_size) };
+    // Open the root directory on a volume.
+    let mut root = file_system.open_volume()?;
 
+    // Try to open a file relative to this file.
+    let mut bootmgfw_file = root.open(filename, FileMode::Read, FileAttribute::READ_ONLY)?.into_regular_file().unwrap();
+
+    // Read the whole file into a vector.
+    let bootmgfw_data = read_all(&mut bootmgfw_file)?;
+
+    // Load an EFI image into memory and return a Handle to the image.
     let bootmgfw_handle = boot_services.load_image(
-        cuurent_image_handle,
+        boot_services.image_handle(),
         LoadImageSource::FromBuffer {
             file_path: None,
-            buffer: bootmgfw_data,
+            buffer: &bootmgfw_data,
         },
     )?;
 
-    boot_services.free_pool(memory_pool)?;
+    return Ok(bootmgfw_handle);
+}
 
-    Ok(bootmgfw_handle)
+/// Read a RegularFile and return it as a vector of bytes (u8).
+pub fn read_all(file: &mut RegularFile) -> uefi::Result<Vec<u8>> {
+    let mut buffer = Vec::new();
+
+    loop {
+        let mut chunk = [0; 512];
+        let read_bytes = file.read(&mut chunk).map_err(|e| e.status())?;
+
+        if read_bytes == 0 {
+            break;
+        }
+
+        buffer.extend_from_slice(&chunk[0..read_bytes]);
+    }
+
+    Ok(buffer)
 }
 
 /// Trampoline hook to redirect execution flow
