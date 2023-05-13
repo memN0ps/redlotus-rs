@@ -15,3 +15,4 @@ uefi-services = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "m
 uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", features = ["alloc"] }
 uefi-macros = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
 uefi-raw = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
+uefi-services = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
