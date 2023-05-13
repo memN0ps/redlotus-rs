@@ -129,7 +129,7 @@ bootkit.efi
 
 Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke), btbd, Aidan Khoury, MrExodia, Mattiwatti, SamuelTulach, matrosov and Welivesecurity.
 
-* Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel)
+* Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel PeterRabbit, MaulingMonkey etc..)
 
 * Austin Hudson: https://github.com/realoriginal/bootlicker
 
