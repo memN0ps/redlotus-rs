@@ -25,11 +25,13 @@ The image below shows how Legacy and UEFI boot works.
 
 1. AFAIK there are a few ways to achieve the same objective as shown below:
 
-    - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows OS loader), which transfers execution to the OS loader (`winload.efi`) or 
+    - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows Boot Manager), which transfers execution to the Windows OS loader (`winload.efi`) or
 
-    - `ImgArchStartBootApplication` to catch the moment when the Windows OS loader (`winload.efi`) is loaded in the memory but still has not been executed or
+    - Hook/Detour `ImgArchStartBootApplication` in `bootmgfw.efi` (Windows Boot Manager) to catch the moment when the Windows OS loader (`winload.efi`) is loaded in the memory but still has not been executed or
 
-    - Hook/Detour `ExitBootServices`, which is UEFI firmware service that signals the end of the boot process and transitions the system from the firmware environment to the operating system environment.
+    - Hook/Detour `ExitBootServices`, which is UEFI firmware service that signals the end of the boot process and transitions the system from the firmware environment to the operating system environment or
+
+    - Hook/Detour `OpenProtocol` from the `BootService` table to get into Windows OS loader (`winload.efi`)
     
         1.1. The following is required if UEFI Secure Boot is enabled:
 
@@ -37,7 +39,7 @@ The image below shows how Legacy and UEFI boot works.
         - Execute `bcdedit /set {bootmgr} nointegritychecks on` to skip the integrity checks.
         - Inject `bcdedit /set {bootmgr} nointegritychecks on` option dynamically by modifying the `LoadOptions`.
 
-        1.2. The following is required to allocate an additional memory buffer for the malicious kernel driver, because as a UEFI Application it will be unloaded from memory after returning from its entry point function.
+        1.2. The following could be required to allocate an additional memory buffer for the malicious kernel driver, because as a UEFI Application it will be unloaded from memory after returning from its entry point function.
         
         - `BlImgAllocateImageBuffer` or `BlMmAllocateVirtualPages` in the Windows OS loader (`winload.efi`).
 
@@ -59,7 +61,7 @@ A UEFI Bootkit works under one or more of the following conditions:
 
 ### Usage 1: Infect Windows Boot Manager `bootmgfw.efi` on Disk (Unsupported)
 
-Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi` (`C:\Windows\Boot\EFI\bootmgfw.efi`. Modification of the bootloader includes adding a new section called .efi to the Windows Boot Manager `bootmgfw.efi`, and changing the executable's entry point address so program flow jumps to the beginning of the added section as shown below:
+Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi` (`C:\Windows\Boot\EFI\bootmgfw.efi`. Modification of the bootloader includes adding a new section called `.efi` to the Windows Boot Manager `bootmgfw.efi`, and changing the executable's entry point address so program flow jumps to the beginning of the added section as shown below:
 
 - Convert bootkit to position-independent code (PIC) or shellcode
 - Find `bootmgfw.efi` (Windows Boot Manager) located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi`
@@ -75,6 +77,8 @@ Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located i
 ```
 cargo build --target x86_64-unknown-uefi
 ```
+
+You can skip some or all of these steps if you know how to get the `bootkit.efi` application in the same file system as Windows Boot Manager and execute it.
 
 Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-Shell](https://github.com/pbatard/UEFI-Shell/releases) and follow these steps:
 
@@ -110,9 +114,11 @@ FS1:
 ls
 ```
 
-6. You should see file `bootkit.efi`, if you do, load it:
+6. You should see file `bootkit.efi`, if you do, copy it to `fs0:` (same location as Windows Boot Manager) and load it:
 
 ```
+cp fs1:bootkit.efi fs0:
+cd fs0:
 bootkit.efi
 ```
 
@@ -120,6 +126,8 @@ bootkit.efi
 
 
 ## Credits / References / Thanks / Motivation
+
+Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke), btbd, Aidan Khoury, MrExodia, Mattiwatti, SamuelTulach, matrosov and Welivesecurity.
 
 * Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel)
 
@@ -178,3 +186,5 @@ bootkit.efi
 * https://github.com/coreos/picker
 
 * https://github.com/mikroskeem/apple-set-os/
+
+* https://github.com/kweatherman/sigmakerex

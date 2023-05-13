@@ -6,6 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4" # https://crates.io/crates/log
-uefi = { version = "0.20.0", features = ["alloc"] } # https://crates.io/crates/uefi
-uefi-services = "0.17.0" # https://crates.io/crates/uefi-services
+log = { version = "0.4.17", default-features = false }
+uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", features = ["alloc"] }
+uefi-services = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
+
+
+[patch.crates-io]
+uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", features = ["alloc"] }
+uefi-macros = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
+uefi-raw = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }

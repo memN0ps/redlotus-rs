@@ -21,19 +21,20 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     let boot_services = system_table.boot_services();
 
     /* Locate and load Windows EFI Boot Manager (bootmgfw.efi) */
-    let bootmgfw_handle = boot::utils::load_windows_boot_manager("\\EFI\\Microsoft\\Boot\\bootmgfw.efi", boot_services).expect("Failed to load image");
+    let bootmgfw_handle = boot::utils::load_windows_boot_manager(boot_services).expect("Failed to load image");
     log::info!("[+] Image Loaded Successfully!");
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */
     //boot::hooks::setup_hooks(&bootmgfw_handle, &boot_services);
-    log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
+    //log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
+
+    /* Make the system pause for 10 seconds */
+    log::info!("Stalling the processor for 20 seconds");
+    system_table.boot_services().stall(10_000_000);
 
     /* Start Windows EFI Boot Manager (bootmgfw.efi) */
     log::info!("[+] Starting image...");
     boot_services.start_image(bootmgfw_handle).expect("[-] Failed to start image");
 
-    /* Make the system pause for 10 seconds */
-    log::info!("Stalling the processor for 20 seconds");
-    system_table.boot_services().stall(10_000_000);
     Status::SUCCESS
 }

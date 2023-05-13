@@ -1,70 +1,49 @@
-use core::ptr::copy_nonoverlapping;
+use core::ptr::{copy_nonoverlapping};
 use core::slice;
-use uefi::proto::media::file::{FileInfo};
-use uefi::table::boot::{LoadImageSource, MemoryType};
-use uefi::{Handle, CStr16};
+use uefi::proto::device_path::{LoadedImageDevicePath, DeviceType, DeviceSubType, build};
+use uefi::proto::device_path::build::DevicePathBuilder;
+use uefi::table::boot::LoadImageSource;
+use uefi::{Handle, cstr16};
 use uefi::{
     prelude::BootServices,
-    proto::media::{
-        file::{File, FileAttribute, FileMode},
-        fs::SimpleFileSystem,
-    },
 };
 
 use alloc::vec::Vec;
 extern crate alloc;
 
-/// Load the Windows EFI Boot Manager (\EFI\Microsoft\Boot\bootmgfw.efi) and return a handle to it
-pub fn load_windows_boot_manager(path: &str, boot_services: &BootServices) -> uefi::Result<Handle> {
-    let mut buf = [0u16; 256];
+/// Load the Windows EFI Boot Manager from file path (\EFI\Microsoft\Boot\bootmgfw.efi) and return a handle to it
+pub fn load_windows_boot_manager(boot_services: &BootServices) -> uefi::Result<Handle> {
+
+    let loaded_image_device_path = boot_services.open_protocol_exclusive::<LoadedImageDevicePath>(boot_services.image_handle())?;
+
+    let mut storage = Vec::new();
+    let mut builder = DevicePathBuilder::with_vec(&mut storage);
+
+    for node in loaded_image_device_path.node_iter() {
+        if node.full_type() == (DeviceType::MEDIA, DeviceSubType::MEDIA_FILE_PATH) {
+            break;
+        }
+
+        builder = builder.push(&node).unwrap();
+    }
+
+    builder = builder
+    .push(&build::media::FilePath {
+        path_name: cstr16!(r"EFI\Microsoft\Boot\bootmgfw.efi"),
+    })
+    .unwrap();
     
-    // Convert a &str to a &CStr16, backed by a buffer. (Can also use cstr16!() macro)
-    let filename = CStr16::from_str_with_buf(path, &mut buf).unwrap();
+    let new_image_path = builder.finalize().unwrap();
 
-    // Returns all the handles implementing a certain protocol.
-    // FS0 is the first handle, which is the EFI System Partition (ESP) containing the windows boot manager
-    let handle = *boot_services.find_handles::<SimpleFileSystem>()?.first().unwrap();
-
-    // Open a protocol interface for a handle in exclusive mode.
-    let mut file_system = boot_services.open_protocol_exclusive::<SimpleFileSystem>(handle)?;
-
-    // Open the root directory on a volume.
-    let mut root = file_system.open_volume()?;
-
-    // Try to open a file relative to this file.
-    let mut bootmgfw_file = root.open(filename, FileMode::Read, FileAttribute::READ_ONLY)?.into_regular_file().unwrap();
-
-    // Create a buffer to store file information
-    let mut file_information_buffer = [0; 128];
-
-    // Queries some information about a file
-    let bootmgfw_info = bootmgfw_file.get_info::<FileInfo>(&mut file_information_buffer).unwrap();
-
-    // File size (number of bytes stored in the file)
-    let bootmgfw_size = bootmgfw_info.file_size() as usize;
-    
-    // Allocates from a memory pool. The pointer will be 8-byte aligned
-    let memory_pool = boot_services.allocate_pool(MemoryType::LOADER_DATA, bootmgfw_size)?;
-    
-    // Read the empty memory pool and form a slice with a size of bootmgfw.efi
-    let bootmgfw_data = unsafe { core::slice::from_raw_parts_mut(memory_pool, bootmgfw_size) };
-
-    // Read bootmgfw.efi and populate the memory pool
-    let _bytes_read = bootmgfw_file.read(bootmgfw_data).expect("Failed to read bootmgfw.efi into memory pool");
-   
-    // Load an EFI image into memory and return a Handle to the image.
-    let bootmgfw_handle = boot_services.load_image(
+    let new_image = boot_services.load_image(
         boot_services.image_handle(),
-        LoadImageSource::FromBuffer {
-            file_path: None,
-            buffer: bootmgfw_data,
+        LoadImageSource::FromFilePath {
+            file_path: new_image_path,
+            from_boot_manager: false,
         },
     )?;
 
-    // Frees memory allocated from a pool.
-    boot_services.free_pool(memory_pool)?;
-
-    return Ok(bootmgfw_handle);
+    return Ok(new_image);
 }
 
 /// Trampoline hook to redirect execution flow
