@@ -25,8 +25,8 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     log::info!("[+] Image Loaded Successfully!");
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */
-    //boot::hooks::setup_hooks(&bootmgfw_handle, &boot_services);
-    //log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
+    boot::hooks::setup_hooks(&bootmgfw_handle, &boot_services).expect("Failed to setup hooks");
+    log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
 
     /* Make the system pause for 10 seconds */
     log::info!("Stalling the processor for 20 seconds");

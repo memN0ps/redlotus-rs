@@ -1,5 +1,4 @@
 use core::ptr::{copy_nonoverlapping};
-use core::slice;
 use uefi::proto::device_path::{LoadedImageDevicePath, DeviceType, DeviceSubType, build};
 use uefi::proto::device_path::build::DevicePathBuilder;
 use uefi::table::boot::LoadImageSource;
@@ -46,30 +45,72 @@ pub fn load_windows_boot_manager(boot_services: &BootServices) -> uefi::Result<H
     return Ok(new_image);
 }
 
-/// Trampoline hook to redirect execution flow
-pub fn trampoline_hook(dest: *mut u8, src: *mut u8, original: Option<&mut [u8; 6]>) -> *mut u8 {
-    if let Some(original) = original {
-        original.copy_from_slice(unsafe { slice::from_raw_parts(src, 6) });
+const JMP_SIZE: usize = 14;
+
+/// Creates a gateway to store the stolen bytes and the resume execution flow, then calls the detour function
+pub fn trampoline_hook64(src: *mut u8, dst: *mut u8, len: usize) -> Result<[u8; JMP_SIZE], ()> {
+    // 5 bytes for x86 and 14 bytes for x86_64
+    if len < JMP_SIZE {
+        return Err(());
     }
 
-    unsafe {
-        let jmp_size = 6;
-        let hook_bytes = [0xFF, 0x25, 0x00, 0x00, 0x00, 0x00];
-        copy_nonoverlapping(hook_bytes.as_ptr(), src, jmp_size);
+    // Location of stolen bytes and jmp back to original function right after hook to resume execution flow
+    let mut gateway: [u8; JMP_SIZE] = [0; JMP_SIZE];
 
-        let dest_ptr = dest as *mut *mut u8;
-        let dst_jmp_offset = src.offset(6) as *mut *mut u8;
-        dst_jmp_offset.write(dest_ptr as _);
+    // Gateway: Store the bytes that are to be stolen in the gateway so we can resume execution flow and jump to them later
+    unsafe { copy_nonoverlapping(src, gateway.as_mut_ptr(), len) };
 
-        src
-    }
+    // 14 bytes for x86_64 for the gateway
+    let mut jmp_bytes: [u8; 14] = [
+        0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
+
+    let jmp_bytes_ptr = jmp_bytes.as_mut_ptr();
+
+    // Populate jmp with an address to jump to: jmp <addresss>
+    unsafe { copy_nonoverlapping(((&((src as usize) + len)) as *const usize) as *mut u8, jmp_bytes_ptr.offset(6),8) };
+
+    // Gateway: Write a jmp at the end of the gateway (after the restoring stolen bytes), to the address of the instruction after the hook to resume execution flow
+    unsafe { copy_nonoverlapping(jmp_bytes_ptr, ((gateway.as_mut_ptr() as usize) + len) as *mut u8, 14) };
+
+    // Perform the actual hook
+    detour64(src, dst, len)?;
+
+    //return the gateway
+
+    Ok( gateway )
 }
 
-/// Trampoline unhook and restore bytes to original
-pub fn trampoline_unhook(src: *mut u8, original: &[u8; 6]) {
-    unsafe {
-        copy_nonoverlapping(original.as_ptr(), src, 6);
+/// Performs a detour or hook, from source to the destination function.
+fn detour64(src: *mut u8, dst: *mut u8, len: usize) -> Result<(), ()> {
+    // 5 bytes for x86 and 14 bytes for x86_64
+    if len < JMP_SIZE {
+        return Err(());
     }
+
+    // 14 bytes for x86_64 for the inline hook
+    let mut jmp_bytes: [u8; 14] = [
+        0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
+
+    let jmp_bytes_ptr = jmp_bytes.as_mut_ptr();
+
+    // Populate jmp array with the address of our detour function: jmp <dst>
+    unsafe { copy_nonoverlapping((&(dst as usize) as *const usize) as *mut u8, jmp_bytes_ptr.offset(6), 8) };
+    
+    // Memory must be writable before hook
+
+    // Hook the original function and place a jmp <dst>
+    unsafe { copy_nonoverlapping(jmp_bytes_ptr, src, 14); }
+
+    Ok(())
+}
+
+
+pub fn trampoline_unhook(src: *mut u8, original_bytes: *mut u8, len: usize) {
+    unsafe { copy_nonoverlapping(original_bytes, src, len) };
 }
 
 /// Convert a combo pattern to bytes without wildcards
