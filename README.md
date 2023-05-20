@@ -187,4 +187,16 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 
 * https://github.com/mikroskeem/apple-set-os/
 
+* https://github.com/Justfr33z/trampoline/
+
 * https://github.com/kweatherman/sigmakerex
+
+* https://guidedhacking.com/threads/external-internal-pattern-scanning-guide.14112/
+
+* https://guidedhacking.com/resources/guided-hacking-x64-cheat-engine-sigmaker-plugin-ce-7-2.319/
+
+* https://github.com/frk1/hazedumper-rs/
+
+* https://github.com/Jakobzs/patternscanner/
+
+* https://github.com/pseuxide/toy-arms/

