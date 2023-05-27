@@ -1,21 +1,15 @@
-# A UEFI Bootkit in Rust
+# Windows UEFI Bootkit in Rust
+
+Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`). 
+
+An alternative approach involves the construction of a [UEFI-based hypervisor](https://github.com/tandasat/Hypervisor-101-in-Rust) that can effectively inhibit the disabling of Hyper-V (Virtualization-Based Security) and test-signing mode. Moreover, this hypervisor would ensure that there is no direct indication of its existence from the operating system's perspective. Additionally, the hypervisor would be designed to install hooks during the early boot phase and rely on PatchGuard for their protection.
 
 **Note: This project is incomplete and work is in progress (W.I.P). A lot of things could be incorrect until this is complete.**
 
-While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system, or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power. 
-
-Feel free to check out my Windows Kernel Rootkit and Blue Pill Hypervisor in pure Rust: 
-
-* https://github.com/memN0ps/rootkit-rs
-* https://github.com/memN0ps/hypervisor-rs
-
-## Features
-
-* Manually Map a Windows kernel driver and/or blue-pill (type-2) hypervisor driver (TODO)
-
 ## Description
 
-A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections.
+A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections. While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power.
+
 
 The image below shows how Legacy and UEFI boot works.
 
@@ -23,7 +17,7 @@ The image below shows how Legacy and UEFI boot works.
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
 
-1. AFAIK there are a few ways to achieve the same objective as shown below:
+1. As far as I know, there are a few ways to achieve the same objective, depending on if you're using an `EFI_APPLICATION` or `EFI_RUNTIME_DRIVER` as shown below:
 
     - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows Boot Manager), which transfers execution to the Windows OS loader (`winload.efi`) or
 
@@ -119,10 +113,12 @@ ls
 ```
 cp fs1:bootkit.efi fs0:
 cd fs0:
-bootkit.efi
+load bootkit.efi
 ```
 
 7. Now you should see output from the `bootkit.efi` application. If it is successful, Windows should boot automatically.
+
+![./images/Example.png](./images/Example.png)
 
 
 ## Credits / References / Thanks / Motivation
@@ -200,3 +196,11 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 * https://github.com/Jakobzs/patternscanner/
 
 * https://github.com/pseuxide/toy-arms/
+
+* https://uefi.org/specs/UEFI/2.10/index.html
+
+* https://github.com/x1tan/rust-uefi-runtime-driver/
+
+* https://github.com/tandasat/MiniVisorPkg/blob/master/Docs/Building_and_Debugging.md
+
+* https://xitan.me/posts/rust-uefi-runtime-driver/

@@ -21,7 +21,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     let boot_services = system_table.boot_services();
 
     /* Locate and load Windows EFI Boot Manager (bootmgfw.efi) */
-    let bootmgfw_handle = boot::utils::load_windows_boot_manager(boot_services).expect("Failed to load image");
+    let bootmgfw_handle = boot::pe::load_windows_boot_manager(boot_services).expect("Failed to load image");
     log::info!("[+] Image Loaded Successfully!");
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */

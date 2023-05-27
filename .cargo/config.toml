@@ -1,0 +1,3 @@
+[build]
+target = "x86_64-unknown-uefi"
+rustflags = ["-Z", "pre-link-args=/subsystem:efi_runtime_driver"]

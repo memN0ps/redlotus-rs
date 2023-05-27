@@ -17,11 +17,11 @@ pub struct _LIST_ENTRY {
 //0x48 bytes (sizeof)
 #[repr(C)]
 pub struct _CONFIGURATION_COMPONENT_DATA {
-    pub Parent: *mut _CONFIGURATION_COMPONENT_DATA,    //0x0
-    pub Child: *mut _CONFIGURATION_COMPONENT_DATA,     //0x8
-    pub Sibling: *mut _CONFIGURATION_COMPONENT_DATA,   //0x10
-    pub ComponentEntry: _CONFIGURATION_COMPONENT,      //0x18
-    pub ConfigurationData: *mut u8,                    //0x40
+    pub Parent: *mut _CONFIGURATION_COMPONENT_DATA,  //0x0
+    pub Child: *mut _CONFIGURATION_COMPONENT_DATA,   //0x8
+    pub Sibling: *mut _CONFIGURATION_COMPONENT_DATA, //0x10
+    pub ComponentEntry: _CONFIGURATION_COMPONENT,    //0x18
+    pub ConfigurationData: *mut u8,                  //0x40
 }
 
 //0x28 bytes (sizeof)
@@ -107,10 +107,9 @@ pub enum _CONFIGURATION_TYPE {
     MaximumType = 41,
 }
 
-
 #[repr(C)]
 struct _DEVICE_FLAGS {
-    pub Flags: u32,                                  // 0x0
+    pub Flags: u32, // 0x0
 }
 
 impl _DEVICE_FLAGS {
@@ -151,110 +150,107 @@ impl _DEVICE_FLAGS {
     }
 }
 
-
 //0x18 bytes (sizeof)
 #[repr(C)]
 pub struct _NLS_DATA_BLOCK {
-    pub AnsiCodePageData: *mut u8,            // 0x0
-    pub OemCodePageData: *mut u8,             // 0x8
-    pub UnicodeCaseTableData: *mut u8,        // 0x10
+    pub AnsiCodePageData: *mut u8,     // 0x0
+    pub OemCodePageData: *mut u8,      // 0x8
+    pub UnicodeCaseTableData: *mut u8, // 0x10
 }
 
 //0x10 bytes (sizeof)
 #[repr(C)]
 pub struct _ARC_DISK_INFORMATION {
-    pub DiskSignatures: _LIST_ENTRY,  // 0x0
+    pub DiskSignatures: _LIST_ENTRY, // 0x0
 }
-
 
 // 0x14 bytes (sizeof)
 #[repr(C)]
 pub struct _LOADER_BLOCK {
-    pub I386: Option<_I386_LOADER_BLOCK>,  // x86 specific loader block
-    pub Arm: Option<_ARM_LOADER_BLOCK>,    // ARM specific loader block
+    pub I386: Option<_I386_LOADER_BLOCK>, // x86 specific loader block
+    pub Arm: Option<_ARM_LOADER_BLOCK>,   // ARM specific loader block
 }
 
 // 0x10 bytes (sizeof)
 #[repr(C)]
 pub struct _I386_LOADER_BLOCK {
-    pub CommonDataArea: *mut c_void,  // Pointer to common data area
-    pub MachineType: u32,                      // Machine type
-    pub VirtualBias: u32,                      // Virtual bias
+    pub CommonDataArea: *mut c_void, // Pointer to common data area
+    pub MachineType: u32,            // Machine type
+    pub VirtualBias: u32,            // Virtual bias
 }
 
 // 0x4 bytes (sizeof)
 #[repr(C)]
 pub struct _ARM_LOADER_BLOCK {
-    pub PlaceHolder: u32,  // Placeholder
+    pub PlaceHolder: u32, // Placeholder
 }
 
 // 0x40 bytes (sizeof)
 #[repr(C)]
 pub struct _FIRMWARE_INFORMATION_LOADER_BLOCK {
-    pub FirmwareTypeUefi: u32,                            // UEFI firmware type
-    pub EfiRuntimeUseIum: u32,                            // EFI runtime use IUM
-    pub EfiRuntimePageProtectionSupported: u32,           // EFI runtime page protection supported
-    pub Reserved: u32,                                    // Reserved
-    pub u: _FIRMWARE_INFORMATION_LOADER_BLOCK_Union,      // Union for firmware information
+    pub FirmwareTypeUefi: u32,                       // UEFI firmware type
+    pub EfiRuntimeUseIum: u32,                       // EFI runtime use IUM
+    pub EfiRuntimePageProtectionSupported: u32,      // EFI runtime page protection supported
+    pub Reserved: u32,                               // Reserved
+    pub u: _FIRMWARE_INFORMATION_LOADER_BLOCK_Union, // Union for firmware information
 }
 
 #[repr(C)]
 pub struct _FIRMWARE_INFORMATION_LOADER_BLOCK_Union {
-    pub EfiInformation: _EFI_FIRMWARE_INFORMATION,        // EFI firmware information
-    pub PcatInformation: _PCAT_FIRMWARE_INFORMATION,      // PCAT firmware information
+    pub EfiInformation: _EFI_FIRMWARE_INFORMATION, // EFI firmware information
+    pub PcatInformation: _PCAT_FIRMWARE_INFORMATION, // PCAT firmware information
 }
 
 // 0x38 bytes (sizeof)
 #[repr(C)]
 pub struct _EFI_FIRMWARE_INFORMATION {
-    pub FirmwareVersion: u32,                                          // Firmware version
+    pub FirmwareVersion: u32, // Firmware version
     pub VirtualEfiRuntimeServices: *mut _VIRTUAL_EFI_RUNTIME_SERVICES, // Pointer to virtual EFI runtime services
-    pub SetVirtualAddressMapStatus: i32,                               // Status of virtual address map
-    pub MissedMappingsCount: u32,                                      // Count of missed mappings
-    pub FirmwareResourceList: _LIST_ENTRY,                             // Firmware resource list
-    pub EfiMemoryMap: *mut u8,                                         // Pointer to EFI memory map
-    pub EfiMemoryMapSize: u32,                                         // Size of EFI memory map
-    pub EfiMemoryMapDescriptorSize: u32,                               // Size of EFI memory map descriptor
+    pub SetVirtualAddressMapStatus: i32, // Status of virtual address map
+    pub MissedMappingsCount: u32,        // Count of missed mappings
+    pub FirmwareResourceList: _LIST_ENTRY, // Firmware resource list
+    pub EfiMemoryMap: *mut u8,           // Pointer to EFI memory map
+    pub EfiMemoryMapSize: u32,           // Size of EFI memory map
+    pub EfiMemoryMapDescriptorSize: u32, // Size of EFI memory map descriptor
 }
-
 
 //0x70 bytes (sizeof)
 #[repr(C)]
 pub struct _VIRTUAL_EFI_RUNTIME_SERVICES {
-    pub GetTime: u64,                 // 0x0
-    pub SetTime: u64,                 // 0x8
-    pub GetWakeupTime: u64,           // 0x10
-    pub SetWakeupTime: u64,           // 0x18
-    pub SetVirtualAddressMap: u64,    // 0x20
-    pub ConvertPointer: u64,          // 0x28
-    pub GetVariable: u64,             // 0x30
-    pub GetNextVariableName: u64,     // 0x38
-    pub SetVariable: u64,             // 0x40
-    pub GetNextHighMonotonicCount: u64,  // 0x48
-    pub ResetSystem: u64,             // 0x50
-    pub UpdateCapsule: u64,           // 0x58
+    pub GetTime: u64,                   // 0x0
+    pub SetTime: u64,                   // 0x8
+    pub GetWakeupTime: u64,             // 0x10
+    pub SetWakeupTime: u64,             // 0x18
+    pub SetVirtualAddressMap: u64,      // 0x20
+    pub ConvertPointer: u64,            // 0x28
+    pub GetVariable: u64,               // 0x30
+    pub GetNextVariableName: u64,       // 0x38
+    pub SetVariable: u64,               // 0x40
+    pub GetNextHighMonotonicCount: u64, // 0x48
+    pub ResetSystem: u64,               // 0x50
+    pub UpdateCapsule: u64,             // 0x58
     pub QueryCapsuleCapabilities: u64,  // 0x60
-    pub QueryVariableInfo: u64,       // 0x68
+    pub QueryVariableInfo: u64,         // 0x68
 }
 
 //0x4 bytes (sizeof)
 #[repr(C)]
 pub struct _PCAT_FIRMWARE_INFORMATION {
-    pub PlaceHolder: u32,  // 0x0
+    pub PlaceHolder: u32, // 0x0
 }
 
 //0x10 bytes (sizeof)
 #[repr(C)]
 pub struct _RTL_RB_TREE {
-    pub Root: *mut _RTL_BALANCED_NODE,  // 0x0
-    pub Encoded: u8,                    // 0x8 (1 bit)
-    pub Min: *mut _RTL_BALANCED_NODE,   // 0x8
+    pub Root: *mut _RTL_BALANCED_NODE, // 0x0
+    pub Encoded: u8,                   // 0x8 (1 bit)
+    pub Min: *mut _RTL_BALANCED_NODE,  // 0x8
 }
 
 //0x18 bytes (sizeof)
 #[repr(C)]
 pub struct _RTL_BALANCED_NODE {
-    pub Children: [*mut _RTL_BALANCED_NODE; 2],  // 0x0
+    pub Children: [*mut _RTL_BALANCED_NODE; 2], // 0x0
     pub Left: *mut _RTL_BALANCED_NODE,          // 0x0
     pub Right: *mut _RTL_BALANCED_NODE,         // 0x8
     pub Red: u8,                                // 0x10 (1 bit)
@@ -269,85 +265,84 @@ pub struct _LOADER_PARAMETER_EXTENSION;
 //0x170 bytes (sizeof)
 #[repr(C)]
 pub struct _LOADER_PARAMETER_BLOCK {
-    pub OsMajorVersion: u32,                                                //0x00
-    pub OsMinorVersion: u32,                                                //0x4
-    pub Size: u32,                                                          //0x8
-    pub OsLoaderSecurityVersion: u32,                                       //0xc
-    pub LoadOrderListHead: _LIST_ENTRY,                                     //0x10
-    pub MemoryDescriptorListHead: _LIST_ENTRY,                              //0x20
-    pub BootDriverListHead: _LIST_ENTRY,                                    //0x30
-    pub EarlyLaunchListHead: _LIST_ENTRY,                                   //0x40
-    pub CoreDriverListHead: _LIST_ENTRY,                                    //0x50
-    pub CoreExtensionsDriverListHead: _LIST_ENTRY,                          //0x60
-    pub TpmCoreDriverListHead: _LIST_ENTRY,                                 //0x70
-    pub KernelStack: u64,                                                   //0x80
-    pub Prcb: u64,                                                          //0x88
-    pub Process: u64,                                                       //0x90
-    pub Thread: u64,                                                        //0x98
-    pub KernelStackSize: u32,                                               //0xa0
-    pub RegistryLength: u32,                                                //0xa4
-    pub RegistryBase: *mut u8,                                              //0xa8
-    pub ConfigurationRoot: *mut _CONFIGURATION_COMPONENT_DATA,              //0xb0
-    pub ArcBootDeviceName: *const i8,                                       //0xb8
-    pub ArcHalDeviceName: *const i8,                                        //0xc0
-    pub NtBootPathName: *const i8,                                          //0xc8
-    pub NtHalPathName: *const i8,                                           //0xd0
-    pub LoadOptions: *const i8,                                             //0xd8
-    pub NlsData: *mut _NLS_DATA_BLOCK,                                      //0xe0
-    pub ArcDiskInformation: *mut _ARC_DISK_INFORMATION,                     //0xe8
-    pub Extension: *mut _LOADER_PARAMETER_EXTENSION,                        //0xf0
-    pub u: _LOADER_BLOCK,                                                   //0xf8
-    pub FirmwareInformation: _FIRMWARE_INFORMATION_LOADER_BLOCK,            //0x108
-    pub OsBootstatPathName: *const i8,                                      //0x148
-    pub ArcOSDataDeviceName: *const i8,                                     //0x150
-    pub ArcWindowsSysPartName: *const i8,                                   //0x158
-    pub MemoryDescriptorTree: _RTL_RB_TREE,                                 //0x160
+    pub OsMajorVersion: u32,                                     //0x00
+    pub OsMinorVersion: u32,                                     //0x4
+    pub Size: u32,                                               //0x8
+    pub OsLoaderSecurityVersion: u32,                            //0xc
+    pub LoadOrderListHead: _LIST_ENTRY,                          //0x10
+    pub MemoryDescriptorListHead: _LIST_ENTRY,                   //0x20
+    pub BootDriverListHead: _LIST_ENTRY,                         //0x30
+    pub EarlyLaunchListHead: _LIST_ENTRY,                        //0x40
+    pub CoreDriverListHead: _LIST_ENTRY,                         //0x50
+    pub CoreExtensionsDriverListHead: _LIST_ENTRY,               //0x60
+    pub TpmCoreDriverListHead: _LIST_ENTRY,                      //0x70
+    pub KernelStack: u64,                                        //0x80
+    pub Prcb: u64,                                               //0x88
+    pub Process: u64,                                            //0x90
+    pub Thread: u64,                                             //0x98
+    pub KernelStackSize: u32,                                    //0xa0
+    pub RegistryLength: u32,                                     //0xa4
+    pub RegistryBase: *mut u8,                                   //0xa8
+    pub ConfigurationRoot: *mut _CONFIGURATION_COMPONENT_DATA,   //0xb0
+    pub ArcBootDeviceName: *const i8,                            //0xb8
+    pub ArcHalDeviceName: *const i8,                             //0xc0
+    pub NtBootPathName: *const i8,                               //0xc8
+    pub NtHalPathName: *const i8,                                //0xd0
+    pub LoadOptions: *const i8,                                  //0xd8
+    pub NlsData: *mut _NLS_DATA_BLOCK,                           //0xe0
+    pub ArcDiskInformation: *mut _ARC_DISK_INFORMATION,          //0xe8
+    pub Extension: *mut _LOADER_PARAMETER_EXTENSION,             //0xf0
+    pub u: _LOADER_BLOCK,                                        //0xf8
+    pub FirmwareInformation: _FIRMWARE_INFORMATION_LOADER_BLOCK, //0x108
+    pub OsBootstatPathName: *const i8,                           //0x148
+    pub ArcOSDataDeviceName: *const i8,                          //0x150
+    pub ArcWindowsSysPartName: *const i8,                        //0x158
+    pub MemoryDescriptorTree: _RTL_RB_TREE,                      //0x160
 }
 
 // 0xa0 bytes (sizeof)
 #[repr(C)]
 pub struct _KLDR_DATA_TABLE_ENTRY {
-    pub InLoadOrderLinks: _LIST_ENTRY,                                            // 0x0
-    pub ExceptionTable: *const c_void,                                            // 0x10
-    pub ExceptionTableSize: u32,                                                  // 0x18
-    pub GpValue: *const c_void,                                                   // 0x20
-    pub NonPagedDebugInfo: *mut _NON_PAGED_DEBUG_INFO,                            // 0x28
-    pub DllBase: *const c_void,                                                   // 0x30
-    pub EntryPoint: *const c_void,                                                // 0x38
-    pub SizeOfImage: u32,                                                         // 0x40
-    pub FullDllName: _UNICODE_STRING,                                             // 0x48
-    pub BaseDllName: _UNICODE_STRING,                                             // 0x58
-    pub Flags: u32,                                                               // 0x68
-    pub LoadCount: u16,                                                           // 0x6c
-    pub SignatureLevel: u16,                                                      // 0x6e
-    pub SectionPointer: *const c_void,                                            // 0x70
-    pub CheckSum: u32,                                                            // 0x78
-    pub CoverageSectionSize: u32,                                                 // 0x7c
-    pub CoverageSection: *const c_void,                                           // 0x80
-    pub LoadedImports: *const c_void,                                             // 0x88
-    pub Spare: *const c_void,                                                     // 0x90
-    pub SizeOfImageNotRounded: u32,                                               // 0x98
-    pub TimeDateStamp: u32,                                                       // 0x9c
+    pub InLoadOrderLinks: _LIST_ENTRY,                 // 0x0
+    pub ExceptionTable: *const c_void,                 // 0x10
+    pub ExceptionTableSize: u32,                       // 0x18
+    pub GpValue: *const c_void,                        // 0x20
+    pub NonPagedDebugInfo: *mut _NON_PAGED_DEBUG_INFO, // 0x28
+    pub DllBase: *const c_void,                        // 0x30
+    pub EntryPoint: *const c_void,                     // 0x38
+    pub SizeOfImage: u32,                              // 0x40
+    pub FullDllName: _UNICODE_STRING,                  // 0x48
+    pub BaseDllName: _UNICODE_STRING,                  // 0x58
+    pub Flags: u32,                                    // 0x68
+    pub LoadCount: u16,                                // 0x6c
+    pub SignatureLevel: u16,                           // 0x6e
+    pub SectionPointer: *const c_void,                 // 0x70
+    pub CheckSum: u32,                                 // 0x78
+    pub CoverageSectionSize: u32,                      // 0x7c
+    pub CoverageSection: *const c_void,                // 0x80
+    pub LoadedImports: *const c_void,                  // 0x88
+    pub Spare: *const c_void,                          // 0x90
+    pub SizeOfImageNotRounded: u32,                    // 0x98
+    pub TimeDateStamp: u32,                            // 0x9c
 }
 
 // Unicode string structure
 pub struct _UNICODE_STRING {
-    pub Length: u16,              // Length of the string
-    pub MaximumLength: u16,       // Maximum length of the string
-    pub Buffer: *mut u16,         // Pointer to the string buffer
+    pub Length: u16,        // Length of the string
+    pub MaximumLength: u16, // Maximum length of the string
+    pub Buffer: *mut u16,   // Pointer to the string buffer
 }
 
 //0x20 bytes (sizeof)
 #[repr(C)]
 pub struct _NON_PAGED_DEBUG_INFO {
-    pub Signature: u16,        // 0x0
-    pub Flags: u16,            // 0x2
-    pub Size: u32,             // 0x4
-    pub Machine: u16,          // 0x8
-    pub Characteristics: u16,  // 0xa
-    pub TimeDateStamp: u32,    // 0xc
-    pub CheckSum: u32,         // 0x10
-    pub SizeOfImage: u32,      // 0x14
-    pub ImageBase: u64,        // 0x18
+    pub Signature: u16,       // 0x0
+    pub Flags: u16,           // 0x2
+    pub Size: u32,            // 0x4
+    pub Machine: u16,         // 0x8
+    pub Characteristics: u16, // 0xa
+    pub TimeDateStamp: u32,   // 0xc
+    pub CheckSum: u32,        // 0x10
+    pub SizeOfImage: u32,     // 0x14
+    pub ImageBase: u64,       // 0x18
 }
-

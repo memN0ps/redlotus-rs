@@ -7,12 +7,5 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17", default-features = false }
-uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", features = ["alloc"] }
-uefi-services = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
-
-
-[patch.crates-io]
-uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", features = ["alloc"] }
-uefi-macros = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
-uefi-raw = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
-uefi-services = { git = "https://github.com/rust-osdev/uefi-rs.git", branch = "main" }
+uefi = {version = "0.21.0", features = ["alloc"] }
+uefi-services = "0.18.0"
