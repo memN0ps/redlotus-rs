@@ -1,3 +1,7 @@
 [build]
 target = "x86_64-unknown-uefi"
 rustflags = ["-Z", "pre-link-args=/subsystem:efi_runtime_driver"]
+
+#[unstable]
+#build-std = ["core", "compiler_builtins", "alloc"]
+#build-std-features = ["compiler-builtins-mem"]

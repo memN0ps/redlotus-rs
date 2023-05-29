@@ -204,3 +204,5 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 * https://github.com/tandasat/MiniVisorPkg/blob/master/Docs/Building_and_Debugging.md
 
 * https://xitan.me/posts/rust-uefi-runtime-driver/
+
+* https://github.com/tandasat/MiniVisorPkg/blob/master/Docs/Testing_UEFI_on_Hyper-V.md
