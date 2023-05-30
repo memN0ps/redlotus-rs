@@ -2,6 +2,7 @@
 #![no_std]
 #![feature(lang_items)]
 #![feature(panic_info_message)]
+#![feature(offset_of)]
 
 use log::error;
 use uefi::{prelude::*};

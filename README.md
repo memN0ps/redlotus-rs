@@ -206,3 +206,9 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 * https://xitan.me/posts/rust-uefi-runtime-driver/
 
 * https://github.com/tandasat/MiniVisorPkg/blob/master/Docs/Testing_UEFI_on_Hyper-V.md
+
+* https://www.intel.com/content/www/us/en/download/674520/intel-uefi-development-kit-intel-udk-debugger-tool-windows.html
+
+* https://doxygen.reactos.org/
+
+* https://www.vergiliusproject.com/
