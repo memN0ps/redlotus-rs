@@ -48,7 +48,7 @@ pub fn load_windows_boot_manager(boot_services: &BootServices) -> uefi::Result<H
     return Ok(new_image);
 }
 
-pub unsafe fn get_loaded_module_by_hash(load_order_list_head: *mut _LIST_ENTRY, module_hash: u32) -> Option<*mut u8> {
+pub unsafe fn get_loaded_module_by_hash(load_order_list_head: *mut _LIST_ENTRY, module_hash: u32) -> Option<*mut _KLDR_DATA_TABLE_ENTRY> {
 
     let mut list_entry = (*load_order_list_head).Flink;
 
@@ -60,10 +60,8 @@ pub unsafe fn get_loaded_module_by_hash(load_order_list_head: *mut _LIST_ENTRY, 
         let dll_length = (*entry).BaseDllName.Length as usize;
         let dll_name_slice = from_raw_parts(dll_buffer_ptr as *const u8, dll_length);
         
-        log::info!("{:#x}", dbj2_hash(dll_name_slice));
-
         if module_hash == dbj2_hash(dll_name_slice) {
-            return Some((*entry).DllBase as _);
+            return Some(entry);
         }
 
 

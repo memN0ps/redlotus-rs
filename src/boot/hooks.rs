@@ -133,28 +133,17 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
     log::info!("[+] OslFwpKernelSetupPhase1 Hook called!");
 
     // ntoskrnl.exe hash: 0xa3ad0390
-    // Crash here: After commenting this out, Windows loads fine
-    let _ntoskrnl_entry = unsafe { get_loaded_module_by_hash(
+    // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
+    let ntoskrnl_entry = unsafe { get_loaded_module_by_hash(
         &mut (*loader_block).LoadOrderListHead,
         0xa3ad0390,
         ).expect("Failed to get loaded module by name")
     };
 
-    //let major_version: u32 = unsafe { (*loader_block).OsMajorVersion };
-    //let minor_version: u32 = unsafe { (*loader_block).OsMajorVersion };
-
-    //log::info!("major_version: {}", major_version);
-    //log::info!("minor_version: {}", minor_version);
-
-    // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
-    // ntoskrnl.exe hash: 0xa3ad0390
-
-    //log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*kernel_entry).DllBase });
-    //log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*kernel_entry).SizeOfImage });
-
+    log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_entry).DllBase });
+    log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_entry).SizeOfImage });
 
     /* 
-
     The comented code is not required, if you're hooking ols_fwp_kernel_setup_phase1
 
     // Look for the OslArchTransferToKernel signature in Windows OS Loader (winload.efi) and return an offset

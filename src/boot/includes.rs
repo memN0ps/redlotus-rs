@@ -328,6 +328,7 @@ pub struct _KLDR_DATA_TABLE_ENTRY {
 
 // Unicode string structure
 #[derive(Copy, Clone)]
+#[repr(C)]
 pub struct _UNICODE_STRING {
     pub Length: u16,        // Length of the string
     pub MaximumLength: u16, // Maximum length of the string
