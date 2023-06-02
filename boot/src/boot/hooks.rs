@@ -4,8 +4,8 @@ use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle};
 
 use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
-
 use super::{includes::_LOADER_PARAMETER_BLOCK};
+use crate::boot::globals::DRIVER_MEMORY;
 
 extern crate alloc;
 
@@ -142,6 +142,8 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
 
     log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_entry).DllBase });
     log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_entry).SizeOfImage });
+    
+    log::info!("Attempting to map driver in ntoskrnl.exe: {:#x}", unsafe { DRIVER_MEMORY.unwrap() });
 
     /* 
     The comented code is not required, if you're hooking ols_fwp_kernel_setup_phase1

