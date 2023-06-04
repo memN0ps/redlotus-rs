@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4", default-features = false }
-uefi = {version = "0.21.0", features = ["global_allocator", "alloc"] }
+uefi = {version = "0.22.0", features = ["global_allocator", "alloc"] }
 #uefi-services = "0.18.0"
 obfstr = "0.3.0"
 com_logger = "0.1.1"

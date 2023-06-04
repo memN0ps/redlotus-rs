@@ -1,3 +1,2 @@
-use uefi::data_types::PhysicalAddress;
-
-pub static mut DRIVER_MEMORY: Option<PhysicalAddress> = None;
+pub static mut DRIVER_ADDRESS: u64 = 0;
+pub static mut DRIVER_LENGTH: u64 = 0;
