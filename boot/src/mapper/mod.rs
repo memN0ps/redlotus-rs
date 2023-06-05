@@ -3,7 +3,8 @@ use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_PHYSICAL_MEMORY};
 use self::headers::{PIMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, PIMAGE_NT_HEADERS64, IMAGE_NT_SIGNATURE, IMAGE_DIRECTORY_ENTRY_EXPORT, PIMAGE_EXPORT_DIRECTORY, IMAGE_DIRECTORY_ENTRY_BASERELOC, PIMAGE_BASE_RELOCATION, IMAGE_BASE_RELOCATION, IMAGE_REL_BASED_DIR64, IMAGE_REL_BASED_HIGHLOW, IMAGE_DIRECTORY_ENTRY_IMPORT, PIMAGE_IMPORT_DESCRIPTOR, IMAGE_IMPORT_DESCRIPTOR, PIMAGE_THUNK_DATA64, PIMAGE_SECTION_HEADER, PIMAGE_IMPORT_BY_NAME};
 mod headers;
 
-pub unsafe fn manually_map(_ntoskrnl_base: *mut u8)
+/// Manually map Windows kernel driver and get address of entry point
+pub unsafe fn manually_map(ntoskrnl_base: *mut u8) -> Option<*mut u8>
 {
     log::info!("Manual Map called!");
     let module_base = DRIVER_PHYSICAL_MEMORY as *mut u8;
@@ -26,9 +27,16 @@ pub unsafe fn manually_map(_ntoskrnl_base: *mut u8)
     rebase_image(new_module_base).expect("Failed to rebase image");
 
     // Resolve imports using ntoskrnl
-    resolve_imports(new_module_base, _ntoskrnl_base).expect("Failed to resolve imports");
+    resolve_imports(new_module_base, ntoskrnl_base).expect("Failed to resolve imports");
 
     log::info!("Finished manual mapping!");
+
+    let nt_headers = get_nt_headers(new_module_base).expect("Failed to get NT headers");
+    let entry_point = (new_module_base as usize + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize) as *mut u8; 
+    
+    log::info!("Entry Point: {:p}", entry_point);
+
+    return Some(entry_point);
 }
 
 /// Get a pointer to IMAGE_DOS_HEADER

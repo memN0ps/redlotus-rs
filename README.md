@@ -1,4 +1,4 @@
-# Windows UEFI Bootkit in Rust
+# Windows UEFI Bootkit in Rust (Codename: RedLotus)
 
 Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`). 
 
