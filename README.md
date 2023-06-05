@@ -212,3 +212,5 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 * https://doxygen.reactos.org/
 
 * https://www.vergiliusproject.com/
+
+* thanks [jonaslyk](https://twitter.com/jonasLyk) for providing the correct function signature for `BlImgAllocateImageBuffer` :)

