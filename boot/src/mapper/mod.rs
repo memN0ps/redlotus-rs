@@ -1,42 +1,79 @@
-use core::{slice::from_raw_parts, mem::size_of};
-use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_PHYSICAL_MEMORY};
+use core::{slice::from_raw_parts, mem::size_of, ptr::copy_nonoverlapping};
+use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_PHYSICAL_MEMORY, MAPPER_DATA_SIZE};
 use self::headers::{PIMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, PIMAGE_NT_HEADERS64, IMAGE_NT_SIGNATURE, IMAGE_DIRECTORY_ENTRY_EXPORT, PIMAGE_EXPORT_DIRECTORY, IMAGE_DIRECTORY_ENTRY_BASERELOC, PIMAGE_BASE_RELOCATION, IMAGE_BASE_RELOCATION, IMAGE_REL_BASED_DIR64, IMAGE_REL_BASED_HIGHLOW, IMAGE_DIRECTORY_ENTRY_IMPORT, PIMAGE_IMPORT_DESCRIPTOR, IMAGE_IMPORT_DESCRIPTOR, PIMAGE_THUNK_DATA64, PIMAGE_SECTION_HEADER, PIMAGE_IMPORT_BY_NAME};
 mod headers;
 
 /// Manually map Windows kernel driver and get address of entry point
-pub unsafe fn manually_map(ntoskrnl_base: *mut u8) -> Option<*mut u8>
+pub unsafe fn manually_map(ntoskrnl_base: *mut u8, target_module_entry_point: *mut u8) -> Option<*mut u8>
 {
-    log::info!("Manual Map called!");
     let module_base = DRIVER_PHYSICAL_MEMORY as *mut u8;
     let new_module_base = ALLOCATED_BUFFER as *mut u64 as *mut u8;
 
-    log::info!("Module base: {:p}", module_base);
-    log::info!("New module base: {:p}", new_module_base);
+    log::info!("[+] Physical Driver Memory: {:p}", module_base);
+    log::info!("[+] Manually Mapped Virtual Memory: {:p}", new_module_base);
 
     // Copy DOS/NT headers to newly allocated memory
     copy_headers(module_base, new_module_base).expect("Failed to copy headers");
-    log::info!("Copied headers");
+    log::info!("[+] Copied headers");
 
     // Copy sections to newly allocated memory
     copy_sections(module_base, new_module_base).expect("Failed to copy sections");
-    log::info!("Copied sections");
+    log::info!("[+] Copied sections");
 
     /* Since we have copied the headers and sections, we can rebase image and resolve imports using the new_module_base (newly allocated memory) */
 
     // Process image relocations (rebase image)
     rebase_image(new_module_base).expect("Failed to rebase image");
+    log::info!("[+] Rebased image");
 
     // Resolve imports using ntoskrnl
     resolve_imports(new_module_base, ntoskrnl_base).expect("Failed to resolve imports");
+    log::info!("[+] Resolved imports");
 
-    log::info!("Finished manual mapping!");
+    log::info!("[+] Finished manual mapping!");
+
+    // Store the target module entry point in the new module base's export address table (DriverEntry) (mapper_data: 0xd007e143)
+    hook_export_address_table(new_module_base, 0xd007e143, target_module_entry_point).expect("Failed to hook export address table");
+    log::info!("[+] Hooked export address table (EAT)");
 
     let nt_headers = get_nt_headers(new_module_base).expect("Failed to get NT headers");
-    let entry_point = (new_module_base as usize + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize) as *mut u8; 
-    
-    log::info!("Entry Point: {:p}", entry_point);
+    let manually_mapped_driver_entry = (new_module_base as usize + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize) as *mut u8;
 
-    return Some(entry_point);
+    return Some(manually_mapped_driver_entry);
+}
+
+/// Save the target driver_entry address inside the manually mapped Windows kernel export, driver_entry
+pub unsafe fn hook_export_address_table(module_base: *mut u8, export_hash: u32, target_base: *mut u8) -> Option<()>
+{
+    let nt_headers = get_nt_headers(module_base)?;
+    let export_directory = (module_base as usize + (*nt_headers).OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT as usize].VirtualAddress as usize) as PIMAGE_EXPORT_DIRECTORY;
+    
+    let names = from_raw_parts((module_base as usize + (*export_directory).AddressOfNames as usize) as *const u32, (*export_directory).NumberOfNames as _);
+    let functions = from_raw_parts((module_base as usize + (*export_directory).AddressOfFunctions as usize) as *const u32, (*export_directory).NumberOfFunctions as _);
+    let ordinals = from_raw_parts((module_base as usize + (*export_directory).AddressOfNameOrdinals as usize) as *const u16, (*export_directory).NumberOfNames as _);
+
+    for i in 0..(*export_directory).NumberOfNames 
+    {
+        let name_addr = (module_base as usize + names[i as usize] as usize) as *const i8;
+        let name_len = get_cstr_len(name_addr as _);
+        let name_slice: &[u8] = from_raw_parts(name_addr as _, name_len);
+
+        // Ordinal 0: __CxxFrameHandler3
+        // Ordinal 1: _fltused
+        // Ordinal 2: driver_entry    
+        // Ordinal 3: mapper_data
+        if export_hash == dbj2_hash(name_slice) 
+        {
+            let ordinal = ordinals[i as usize] as usize;
+
+            // Copy the original bytes of the target module to the export function mapper_data
+            copy_nonoverlapping(target_base, (module_base as usize + functions[ordinal] as usize) as *mut u8, MAPPER_DATA_SIZE);
+
+            return Some(());
+        }
+    }
+
+    return None;
 }
 
 /// Get a pointer to IMAGE_DOS_HEADER
@@ -93,7 +130,7 @@ pub unsafe fn copy_sections(module_base: *mut u8, new_module_base: *mut u8) -> O
         let source = (module_base as usize + section_header_i.PointerToRawData as usize) as *const u8;
         let size = section_header_i.SizeOfRawData as usize;
 
-        //core::ptr::copy_nonoverlapping(source, destination,size);
+        //core::ptr::copy_nonoverlapping(source, destination, size);
         let source_data = core::slice::from_raw_parts(source as *const u8, size);
         
         for x in 0..size 

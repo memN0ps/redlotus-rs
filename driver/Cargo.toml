@@ -21,6 +21,8 @@ kernel-log = "0.1.2" # https://crates.io/crates/kernel-log
 kernel-build = "0.1.0" # https://crates.io/crates/kernel-build
 kernel-alloc = { version = "0.2.1", features = ["pool-tag"] } # https://crates.io/crates/kernel-alloc
 obfstr = "0.4.1" # https://crates.io/crates/obfstr
+#x86_64 = "0.14.10" # https://crates.io/crates/x86_64
+x86 = "0.52.0" # https://crates.io/crates/x86
 
 [dependencies.winapi]
 git = "https://github.com/Trantect/winapi-rs.git"

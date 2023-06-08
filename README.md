@@ -16,33 +16,6 @@ The image below shows how Legacy and UEFI boot works.
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
-
-1. As far as I know, there are a few ways to achieve the same objective, depending on if you're using an `EFI_APPLICATION` or `EFI_RUNTIME_DRIVER` as shown below:
-
-    - Hook/detour `Archpx64TransferTo64BitApplicationAsm` in `bootmgfw.efi` (Windows Boot Manager), which transfers execution to the Windows OS loader (`winload.efi`) or
-
-    - Hook/Detour `ImgArchStartBootApplication` in `bootmgfw.efi` (Windows Boot Manager) to catch the moment when the Windows OS loader (`winload.efi`) is loaded in the memory but still has not been executed or
-
-    - Hook/Detour `ExitBootServices`, which is UEFI firmware service that signals the end of the boot process and transitions the system from the firmware environment to the operating system environment or
-
-    - Hook/Detour `OpenProtocol` from the `BootService` table to get into Windows OS loader (`winload.efi`)
-    
-        1.1. The following is required if UEFI Secure Boot is enabled:
-
-        - Patch `BmFwVerifySelfIntegrity` to bypass self integrity checks.
-        - Execute `bcdedit /set {bootmgr} nointegritychecks on` to skip the integrity checks.
-        - Inject `bcdedit /set {bootmgr} nointegritychecks on` option dynamically by modifying the `LoadOptions`.
-
-        1.2. The following could be required to allocate an additional memory buffer for the malicious kernel driver, because as a UEFI Application it will be unloaded from memory after returning from its entry point function.
-        
-        - `BlImgAllocateImageBuffer` or `BlMmAllocateVirtualPages` in the Windows OS loader (`winload.efi`).
-
-2. Hook/detour `OslArchTransferToKernel` in `winload.efi` (Windows OS loader), which transfers execution to the Windows Kernel (`ntoskrnl.exe`) to catch the moment when the OS kernel and some of the system drivers are already loaded in the memory, but still not been executed, which is a perfect moment to perform more in-memory patching.
-    
-    - Patch `SepInitializeCodeIntegrity`, a parameter to `CiInitialize` in `ntoskrnl.exe` to disable Driver Signature Enforcement (DSE).
-    - Patch `KeInitAmd64SpecificState` in `ntoskrnl.exe` to disable PatchGuard.
-
-
 ## Usage
 
 A UEFI Bootkit works under one or more of the following conditions:
@@ -131,6 +104,8 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 
 * BTBD: https://github.com/btbd/umap/
 
+* ekknod: https://github.com/ekknod/sumap/
+
 * Aidan Khoury: https://github.com/ajkhoury/UEFI-Bootkit/
 
 * Matthijs Lavrijsen: https://github.com/Mattiwatti/EfiGuard
@@ -144,6 +119,8 @@ Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke)
 * Cr4sh: https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
 
 * Alex Matrosov: Rootkits and Bootkits: https://nostarch.com/rootkits by [Alex Matrosov](https://twitter.com/matrosov)
+
+* Binarly: https://www.binarly.io/posts/The_Untold_Story_of_the_BlackLotus_UEFI_Bootkit/index.html
 
 * Welivesecurity: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
 
