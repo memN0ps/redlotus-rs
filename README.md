@@ -1,15 +1,25 @@
 # Windows UEFI Bootkit in Rust (Codename: RedLotus)
 
-Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`). 
+Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) similar to [umap by @btbd](https://github.com/btbd/umap/).
 
 A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections. While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power.
 
+This project is inspired by the following:
+
+- umap: https://github.com/btbd/umap/ (This project has been ported from C to Rust)
+- Bootlicker: https://github.com/realoriginal/bootlicker
+- BlackLotus: https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
+- ESPecter: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
+- UEFI-Bootkit: https://github.com/ajkhoury/UEFI-Bootkit/
+- EfiGuard: https://github.com/Mattiwatti/EfiGuard
+- Bootkitting Windows Sandbox: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 
 The image below shows how Legacy and UEFI boot works.
 
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
+## Install
 
 ### [Install Rust](https://www.rust-lang.org/tools/install)
 
@@ -53,7 +63,7 @@ cargo build --target x86_64-unknown-uefi --release
 
 A UEFI Bootkit works under one or more of the following conditions:
 
-- Secure Boot is disabled on the machine, so no vulnerabilities are required to exploit it. (**Supported by this project**).
+- Secure Boot is disabled on the machine, so no vulnerabilities are required to exploit it (**supported by this project**).
 
 - Exploiting a known flaw in the UEFI firmware to disable Secure Boot in the case of an out-of-date firmware version or a product no longer supported, including the Bring Your Own Vulnerable Binary (BYOVB) technique to bring copies of vulnerable binaries to the machines to exploit a vulnerability or vulnerabilities and bypass Secure Boot on up-to-date UEFI systems (1-day/one-day).
 
@@ -71,8 +81,6 @@ Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located i
 - Reboot
 
 ### Usage 2: Execute UEFI Bootkit via UEFI Shell (Supported)
-
-You can skip some or all of these steps if you know how to get the `redlotus.efi` application in the same file system as Windows Boot Manager and execute it.
 
 Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-Shell](https://github.com/pbatard/UEFI-Shell/releases) and follow these steps:
 
@@ -123,35 +131,35 @@ load redlotus.efi
 
 ## Credits / References / Thanks / Motivation
 
-Special thanks to rust-osdev, Rust Community, Austin Hudson, inlineHookz (smoke), btbd, Aidan Khoury, MrExodia, Mattiwatti, SamuelTulach, matrosov and Welivesecurity.
-
-* Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel PeterRabbit, MaulingMonkey etc..)
+* BTBD: https://github.com/btbd/umap/
 
 * Austin Hudson: https://github.com/realoriginal/bootlicker
 
-* BTBD: https://github.com/btbd/umap/
+* Thanks for all the help: inlineHookz (smoke/snow/never_unsealed): https://twitter.com/never_unsealed
 
-* ekknod: https://github.com/ekknod/sumap/
+* Rust Community Discord: https://discord.com/invite/rust-lang (#windows-dev channel PeterRabbit, MaulingMonkey etc..)
 
 * Aidan Khoury: https://github.com/ajkhoury/UEFI-Bootkit/
 
 * Matthijs Lavrijsen: https://github.com/Mattiwatti/EfiGuard
 
-* Samuel Tulach: https://github.com/SamuelTulach/rainbow
+* Welivesecurity: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
+
+* Welivesecurity: https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
 * MrExodia: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 
+* Samuel Tulach: https://github.com/SamuelTulach/rainbow
+
 * UnknownCheats: https://www.unknowncheats.me/forum/anti-cheat-bypass/452202-rainbow-efi-bootkit-hwid-spoofer-smbios-disk-nic.html
+
+* ekknod: https://github.com/ekknod/sumap/
 
 * Cr4sh: https://github.com/Cr4sh/s6_pcie_microblaze/tree/master/python/payloads/DmaBackdoorBoot
 
 * Alex Matrosov: Rootkits and Bootkits: https://nostarch.com/rootkits by [Alex Matrosov](https://twitter.com/matrosov)
 
 * Binarly: https://www.binarly.io/posts/The_Untold_Story_of_the_BlackLotus_UEFI_Bootkit/index.html
-
-* Welivesecurity: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
-
-* Welivesecurity: https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 
 * rust-osdev: https://github.com/rust-osdev/uefi-rs
 
