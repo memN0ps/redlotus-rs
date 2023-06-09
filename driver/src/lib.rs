@@ -1,8 +1,7 @@
 #![no_std]
-
-use kernel_log::KernelLogger;
-use log::LevelFilter;
 use winapi::{km::wdm::{DRIVER_OBJECT}, shared::{ntdef::{UNICODE_STRING, NTSTATUS}}};
+mod restore;
+mod includes;
 
 pub const JMP_SIZE: usize = 14;
 pub const MAPPER_DATA_SIZE: usize = JMP_SIZE + 7;
@@ -21,8 +20,8 @@ static _FLTUSED: i32 = 0;
 
 #[allow(unused_imports)]
 use core::panic::PanicInfo;
-use core::ptr::copy_nonoverlapping;
 
+use crate::restore::magic;
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! { loop {} }
@@ -36,48 +35,17 @@ static mut DriverEntry: Option<DriverEntryType> = None;
 #[no_mangle]
 pub extern "system" fn driver_entry(driver_object: &mut DRIVER_OBJECT, registry_path: &UNICODE_STRING, target_module_entry: *mut u8) -> NTSTATUS {
     // When manually mapping a driver you don't call driver_unload. You restart the system instead.
+    /* Restore execution flow and hooked functions */
     magic(target_module_entry);
+
+    /* Your code goes here ( Do the other kernel magic below) */
+
+
+
+    /* End of your code (Do the other kernel magic above) */
 
     log::info!("Calling Unhooked DriverEntry....");
     // Call the original driver entry to restore execution flow (disk.sys)
-    return unsafe { DriverEntry.unwrap()(driver_object, registry_path) };
-}
-
-pub fn magic(target_module_entry: *mut u8) {
-    KernelLogger::init(LevelFilter::Info).expect("Failed to initialize logger");
-    log::info!("[+] Driver Entry called");
-
-    /* Remove write protection */
-    // Credits Austin Hudson: https://github.com/realoriginal/bootlicker/blob/master/bootkit/DrvMain.c#L116
-    log::info!("[+] Write protection removed");
-    unsafe { disable_write_protect() };
-
-    // Unhook DriverEntry and restore stolen bytes before we do anything else
-    log::info!("[+] Disk.sys DriverEntry Address: {:p}", target_module_entry);
-    log::info!("[+] Stolen Bytes Address: {:p}", unsafe { mapper_data.as_ptr() });
-    unsafe { copy_nonoverlapping(mapper_data.as_ptr(), target_module_entry, mapper_data.len()) };
     unsafe { DriverEntry = Some(core::mem::transmute::<*mut u8, DriverEntryType>(target_module_entry)) };
-    log::info!("[+] Hooked DriverEntry restored");
-
-    /* Insert write protection */
-    // Credits Austin Hudson: https://github.com/realoriginal/bootlicker/blob/master/bootkit/DrvMain.c#L128
-    log::info!("[+] Write protection restored");
-    unsafe { enable_write_protect() };
-
-    /* Do the other kernel magic below */
-
-
-    /* Do the other kernel magic above */
-}
-
-/// Enable write protection bit in CR0
-unsafe fn enable_write_protect() {
-    let cr0 = x86::controlregs::cr0();
-    x86::controlregs::cr0_write(cr0 | x86::controlregs::Cr0::CR0_WRITE_PROTECT);
-}
-
-/// Disable write protection bit in CR0
-unsafe fn disable_write_protect() {
-    let cr0 = x86::controlregs::cr0();
-    x86::controlregs::cr0_write(cr0 & !x86::controlregs::Cr0::CR0_WRITE_PROTECT);
+    return unsafe { DriverEntry.unwrap()(driver_object, registry_path) };
 }

@@ -126,7 +126,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
             .expect("Failed to perform trampoline hook on BlImgAllocateImageBuffer");
     }
 
-    log::info!("Calling Original ImgArchStartBootApplication");
+    log::info!("[+] Calling Original ImgArchStartBootApplication");
 
     // Call the original unhooked ImgArchStartBootApplication function
     unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
@@ -174,8 +174,8 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
         .expect("Failed to get ntoskrnl by hash")
     };
 
-    log::info!("ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_module).DllBase });
-    log::info!("ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_module).SizeOfImage });
+    log::info!("[+] ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_module).DllBase });
+    log::info!("[+] ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_module).SizeOfImage });
 
     // The target module is the driver we are going to hook, this will be left to the user to change
     
@@ -200,9 +200,10 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
         .expect("Failed to perform trampoline hook on Disk.sys")
     };
 
-    log::info!("[+] Manually Mapped Driver Entry: {:#p}", mapped_driver_address_of_entry_point);
+    log::info!("[+] Redlotus.sys DriverEntry: {:#p}", mapped_driver_address_of_entry_point);
     log::info!("[+] Disk.sys DriverEntry: {:p}", unsafe { (*target_module).EntryPoint });
-    log::info!("[+] Stolen Bytes Address: {:#p}", unsafe { ORIGINAL_BYTES.as_mut_ptr() });
+    log::info!("[+] Disk.sys Hook Address: {:#p}", unsafe { ((*target_module).EntryPoint as *mut u8).add(7) });
+    log::info!("[+] Stolen Bytes Address (Only to see what bytes were stolen, freed after kernel loaded): {:#p}", unsafe { ORIGINAL_BYTES.as_mut_ptr() });
 
     log::info!("[+] Loading Windows Kernel...");
 

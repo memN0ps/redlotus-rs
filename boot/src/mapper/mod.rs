@@ -67,7 +67,9 @@ pub unsafe fn hook_export_address_table(module_base: *mut u8, export_hash: u32, 
             let ordinal = ordinals[i as usize] as usize;
 
             // Copy the original bytes of the target module to the export function mapper_data
-            copy_nonoverlapping(target_base, (module_base as usize + functions[ordinal] as usize) as *mut u8, MAPPER_DATA_SIZE);
+            let mapper_data_addy = (module_base as usize + functions[ordinal] as usize) as *mut u8;
+            log::info!("[+] Mapper Data Addy (Stolen Bytes) stored in mapped driver: {:p}", mapper_data_addy);
+            copy_nonoverlapping(target_base, mapper_data_addy, MAPPER_DATA_SIZE);
 
             return Some(());
         }

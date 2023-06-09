@@ -45,7 +45,7 @@ Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located i
 cargo build --target x86_64-unknown-uefi
 ```
 
-You can skip some or all of these steps if you know how to get the `bootkit.efi` application in the same file system as Windows Boot Manager and execute it.
+You can skip some or all of these steps if you know how to get the `redlotus.efi` application in the same file system as Windows Boot Manager and execute it.
 
 Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-Shell](https://github.com/pbatard/UEFI-Shell/releases) and follow these steps:
 
@@ -57,7 +57,7 @@ Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-S
 
 ```
 USB:.
- │   bootkit.efi
+ │   redlotus.efi
  │
  └───EFI
       └───Boot
@@ -81,15 +81,15 @@ FS1:
 ls
 ```
 
-6. You should see file `bootkit.efi`, if you do, copy it to `fs0:` (same location as Windows Boot Manager) and load it:
+6. You should see file `redlotus.efi`, if you do, copy it to `fs0:` (same location as Windows Boot Manager) and load it:
 
 ```
-cp fs1:bootkit.efi fs0:
+cp fs1:redlotus.efi fs0:
 cd fs0:
-load bootkit.efi
+load redlotus.efi
 ```
 
-7. Now you should see output from the `bootkit.efi` application. If it is successful, Windows should boot automatically.
+7. Now you should see output from the `redlotus.efi` application. If it is successful, Windows should boot automatically.
 
 ![./images/Example.png](./images/Example.png)
 
