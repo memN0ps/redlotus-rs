@@ -2,12 +2,6 @@
 
 Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`). 
 
-An alternative approach involves the construction of a [UEFI-based hypervisor](https://github.com/tandasat/Hypervisor-101-in-Rust) that can effectively inhibit the disabling of Hyper-V (Virtualization-Based Security) and test-signing mode. Moreover, this hypervisor would ensure that there is no direct indication of its existence from the operating system's perspective. Additionally, the hypervisor would be designed to install hooks during the early boot phase and rely on PatchGuard for their protection.
-
-**Note: This project is incomplete and work is in progress (W.I.P). A lot of things could be incorrect until this is complete.**
-
-## Description
-
 A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections. While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power.
 
 
@@ -15,6 +9,45 @@ The image below shows how Legacy and UEFI boot works.
 
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
+
+
+### [Install Rust](https://www.rust-lang.org/tools/install)
+
+To start using Rust, [download the installer](https://www.rust-lang.org/tools/install), then run the program and follow the onscreen instructions. You may need to install the [Visual Studio C++ Build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) when prompted to do so.
+
+
+### [Install and change to Rust nightly](https://rust-lang.github.io/rustup/concepts/channels.html)
+
+```
+rustup toolchain install nightly
+rustup default nightly
+```
+
+### [Install cargo-make](https://github.com/sagiegurari/cargo-make)
+
+```
+cargo install cargo-make
+```
+
+### [Install WDK/SDK](https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk)
+
+* Step 1: Install Visual Studio 2022
+* Step 2: Install Windows 11, version 22H2 SDK
+* Step 3: Install Windows 11, version 22H2 WDK
+
+## Build
+
+Change directory to `.\driver\` and build driver
+
+```
+cargo make sign
+```
+
+Change directory to `.\bootkit\` and build bootkit
+
+```
+cargo build --target x86_64-unknown-uefi --release
+```
 
 ## Usage
 
@@ -39,19 +72,13 @@ Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located i
 
 ### Usage 2: Execute UEFI Bootkit via UEFI Shell (Supported)
 
-0. Compile the project
-
-```
-cargo build --target x86_64-unknown-uefi
-```
-
 You can skip some or all of these steps if you know how to get the `redlotus.efi` application in the same file system as Windows Boot Manager and execute it.
 
 Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-Shell](https://github.com/pbatard/UEFI-Shell/releases) and follow these steps:
 
 1. Extract downloaded efi shell and rename file `Shell.efi` (should be in folder `UefiShell/X64`) to `bootx64.efi`
 
-2. Format some USB drive to FAT32
+2. Format USB drive to FAT32
 
 3. Create following folder structure:
 
@@ -74,25 +101,25 @@ USB:.
 
     * Select Internal Shell (Unsupported option) or EFI Vmware Virtual SCSI Hard Drive (1.0)
 
-5. An UEFI shell should start, change directory to your USB (`FS1` should be the USB since we are booting from it) and list files:
+5. A UEFI shell should start, change directory to the same location as the Windows Boot Manager (e.g. `FS0`). **Note that the file system could be different for your machine**
 
 ```
-FS1:
-ls
+FS0:
 ```
 
-6. You should see file `redlotus.efi`, if you do, copy it to `fs0:` (same location as Windows Boot Manager) and load it:
+6. Copy the bootkit to the same location as the Windows Boot Manager (e.g. `FS0`).
 
 ```
-cp fs1:redlotus.efi fs0:
-cd fs0:
+cp fs2:redlotus.efi fs0:
+```
+
+7. Load the the bootkit
+
+```
 load redlotus.efi
 ```
 
-7. Now you should see output from the `redlotus.efi` application. If it is successful, Windows should boot automatically.
-
-![./images/Example.png](./images/Example.png)
-
+8. Windows should boot automatically.
 
 ## Credits / References / Thanks / Motivation
 
