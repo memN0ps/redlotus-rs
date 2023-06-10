@@ -13,6 +13,7 @@ This project is inspired by the following:
 - UEFI-Bootkit: https://github.com/ajkhoury/UEFI-Bootkit/
 - EfiGuard: https://github.com/Mattiwatti/EfiGuard
 - Bootkitting Windows Sandbox: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
+- Rootkits and Bootkits: https://nostarch.com/rootkits
 
 ## TODO
 
