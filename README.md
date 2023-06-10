@@ -26,6 +26,22 @@ The image below shows how Legacy and UEFI boot works.
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
+
+The diagram below shows how the RedLotus bootkit works:
+
+```mermaid
+graph LR;
+    A[GitHub Project] --> B(Use Bootkit);
+    B --> C[Hook ImgArchStartBootApplication];
+    C --> D[Hook BlImgAllocateImageBuffer];
+    D --> E[Hook OslArchTransferToKernelType];
+    E --> F[Manually Map Kernel Driver];
+    F --> G[Trampoline Hook disk.sys];
+    G --> H[Redirect to DriverEntry];
+    H --> I[Restore Stolen Bytes];
+    I --> J[Redirect to disk.sys in Mapped Driver];
+```
+
 ## Install
 
 ### [Install Rust](https://www.rust-lang.org/tools/install)
