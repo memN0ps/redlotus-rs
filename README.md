@@ -37,8 +37,6 @@ graph TD;
     C -->|Calls| D[Manual Mapper];
     D -->|Maps | G[RedLotus.sys]
     C -->|Hooks| E[Disk.sys];
-    C -->|Calls| F["OlsArchTransferToKernel (winload.efi)"];
-    F -->|Calls| E[Disk.sys];
     E -->|Calls| G[RedLotus.sys];
     G -->|Restores| E;
 ```
