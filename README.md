@@ -30,8 +30,9 @@ This diagram illustrates the structure and flow of the RedLotus.efi UEFI bootkit
 
 ```mermaid
 graph TD;
+    R["RedLotus.efi bootkit runtime driver (EFI_RUNTIME_DRIVER)"] -->|Hooks| A["ImgArchStartBootApplication (bootmgfw.efi)"];
     A["ImgArchStartBootApplication (bootmgfw.efi)"] -->|Hooks| B["BlImgAllocateImageBuffer (winload.efi)"];
-    B -->|Allocates Buffer| G[RedLotus.sys]
+    B -->|Allocates Buffer| G[RedLotus.sys];
     A -->|Hooks| C["OslFwpKernelSetupPhase1 (winload.efi)"];
     C -->|Calls| D[Manual Mapper];
     D -->|Maps | G[RedLotus.sys]
