@@ -14,6 +14,13 @@ This project is inspired by the following:
 - EfiGuard: https://github.com/Mattiwatti/EfiGuard
 - Bootkitting Windows Sandbox: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 
+## TODO
+
+- Refactor code
+- Better error handling
+- Provide stability
+- Make a blog or diagram on how it works
+
 The image below shows how Legacy and UEFI boot works.
 
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
