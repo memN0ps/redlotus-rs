@@ -129,6 +129,10 @@ load redlotus.efi
 
 8. Windows should boot automatically.
 
+## PoC
+
+![poc.png](./images/poc.png)
+
 ## Credits / References / Thanks / Motivation
 
 * BTBD: https://github.com/btbd/umap/
