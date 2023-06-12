@@ -16,7 +16,7 @@ pub unsafe fn manually_map(
     ntoskrnl_base: *mut u8,
     target_module_entry_point: *mut u8,
 ) -> Option<*mut u8> {
-    log::info!("[*] Manual Mapper called!\n\n");
+    log::info!("[*] ### Manual Mapper ###");
     let module_base = DRIVER_PHYSICAL_MEMORY as *mut u8;
     let new_module_base = ALLOCATED_BUFFER as *mut u64 as *mut u8;
 

