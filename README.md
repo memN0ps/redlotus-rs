@@ -160,6 +160,7 @@ load redlotus.efi
 ## Tested
 
 - `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`
+- `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
 
 ## Credits / References / Thanks / Motivation
 
