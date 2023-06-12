@@ -1,21 +1,29 @@
 use core::ptr::{copy_nonoverlapping, null_mut};
 
+use crate::includes::LOCK_OPERATION::IoModifyAccess;
+use crate::includes::_MM_PAGE_PRIORITY::HighPagePriority;
+use kernel_alloc::nt::MEMORY_CACHING_TYPE::MmNonCached;
 use kernel_log::KernelLogger;
 use log::LevelFilter;
 use winapi::km::wdm::KPROCESSOR_MODE::KernelMode;
-use crate::includes::LOCK_OPERATION::IoModifyAccess;
-use kernel_alloc::nt::MEMORY_CACHING_TYPE::MmNonCached;
-use crate::includes::_MM_PAGE_PRIORITY::HighPagePriority;
 
-use crate::includes::{MmMapLockedPagesSpecifyCache, MmUnlockPages, IoFreeMdl, MmUnmapLockedPages};
-use crate::{includes::{IoAllocateMdl, MmProbeAndLockPages}, mapper_data};
+use crate::includes::{IoFreeMdl, MmMapLockedPagesSpecifyCache, MmUnlockPages, MmUnmapLockedPages};
+use crate::{
+    includes::{IoAllocateMdl, MmProbeAndLockPages},
+    mapper_data,
+};
 
 pub fn magic(target_module_entry: *mut u8) {
     KernelLogger::init(LevelFilter::Info).expect("Failed to initialize logger");
-    
+
     log::info!("[+] Driver Entry called");
-    log::info!("[+] Target Driver DriverEntry Address: {:p}", target_module_entry);
-    log::info!("[+] Stolen Bytes Address: {:p}", unsafe { mapper_data.as_ptr() });
+    log::info!(
+        "[+] Target Driver DriverEntry Address: {:p}",
+        target_module_entry
+    );
+    log::info!("[+] Stolen Bytes Address: {:p}", unsafe {
+        mapper_data.as_ptr()
+    });
 
     /* Force to 1 CPU */
     //unsafe { KeSetSystemAffinityThread(1) };
@@ -37,8 +45,13 @@ pub fn magic(target_module_entry: *mut u8) {
 }
 
 pub unsafe fn memcopywp(target_module_entry: *mut u8) -> Option<()> {
-
-    let mdl = IoAllocateMdl(target_module_entry as _, mapper_data.len() as u32, 0, 0, null_mut());
+    let mdl = IoAllocateMdl(
+        target_module_entry as _,
+        mapper_data.len() as u32,
+        0,
+        0,
+        null_mut(),
+    );
 
     if mdl.is_null() {
         log::info!("[-] Failed to call IoAllocateMdl");
@@ -47,8 +60,15 @@ pub unsafe fn memcopywp(target_module_entry: *mut u8) -> Option<()> {
 
     MmProbeAndLockPages(mdl, KernelMode, IoModifyAccess);
 
-    let mapped = unsafe { 
-        MmMapLockedPagesSpecifyCache(mdl, KernelMode, MmNonCached, null_mut(), 0, HighPagePriority as _)
+    let mapped = unsafe {
+        MmMapLockedPagesSpecifyCache(
+            mdl,
+            KernelMode,
+            MmNonCached,
+            null_mut(),
+            0,
+            HighPagePriority as _,
+        )
     };
 
     if mapped.is_null() {

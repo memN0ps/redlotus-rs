@@ -3,7 +3,13 @@
 #![allow(dead_code)]
 
 use kernel_alloc::nt::MEMORY_CACHING_TYPE;
-use winapi::{shared::{ntdef::{PVOID, BOOLEAN, CSHORT}, minwindef::ULONG}, km::wdm::{PIRP, KPROCESSOR_MODE, PEPROCESS}};
+use winapi::{
+    km::wdm::{KPROCESSOR_MODE, PEPROCESS, PIRP},
+    shared::{
+        minwindef::ULONG,
+        ntdef::{BOOLEAN, CSHORT, PVOID},
+    },
+};
 
 #[link(name = "ntoskrnl")]
 extern "system" {
@@ -12,7 +18,7 @@ extern "system" {
     pub fn KeSetSystemAffinityThread(Affinity: usize);
 
     /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-ioallocatemdl
-    /// The IoAllocateMdl routine allocates a memory descriptor list (MDL) large enough to map a buffer, 
+    /// The IoAllocateMdl routine allocates a memory descriptor list (MDL) large enough to map a buffer,
     /// given the buffer's starting address and length. Optionally, this routine associates the MDL with an IRP.
     pub fn IoAllocateMdl(
         VirtualAddress: PVOID,
@@ -23,8 +29,8 @@ extern "system" {
     ) -> PMDL;
 
     /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-mmprobeandlockpages
-    /// The MmProbeAndLockPages routine probes the specified virtual memory pages, makes them resident, 
-    /// and locks them in memory (say for a DMA transfer). 
+    /// The MmProbeAndLockPages routine probes the specified virtual memory pages, makes them resident,
+    /// and locks them in memory (say for a DMA transfer).
     /// This ensures the pages cannot be freed and reallocated while a device driver (or hardware) is still using them.
     pub fn MmProbeAndLockPages(
         MemoryDescriptorList: *mut MDL,
@@ -33,7 +39,7 @@ extern "system" {
     );
 
     /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-mmmaplockedpagesspecifycache?source=recommendations
-    /// The MmMapLockedPagesSpecifyCache routine maps the physical pages that are described by an MDL to a virtual address, 
+    /// The MmMapLockedPagesSpecifyCache routine maps the physical pages that are described by an MDL to a virtual address,
     /// and enables the caller to specify the cache attribute that is used to create the mapping.
     pub fn MmMapLockedPagesSpecifyCache(
         MemoryDescriptorList: PMDL,
@@ -43,9 +49,9 @@ extern "system" {
         BugCheckOnFailure: ULONG,
         Priority: ULONG,
     ) -> PVOID;
-    
+
     /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-mmunmaplockedpages
-    /// The MmUnmapLockedPages routine releases a mapping that was set up by a preceding call to the 
+    /// The MmUnmapLockedPages routine releases a mapping that was set up by a preceding call to the
     /// MmMapLockedPages or MmMapLockedPagesSpecifyCache routine.
     pub fn MmUnmapLockedPages(BaseAddress: PVOID, MemoryDescriptorList: PMDL);
 
