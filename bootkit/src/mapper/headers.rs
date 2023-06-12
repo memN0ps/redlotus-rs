@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
-/* 
-* Credits: 
+/*
+* Credits:
 * https://github.com/microsoft/windows-rs
 * https://github.com/retep998/winapi-rs
 */
@@ -38,7 +38,6 @@ pub const IMAGE_ORDINAL_FLAG64: u64 = 9223372036854775808u64;
 
 #[repr(C, packed(2))]
 pub struct IMAGE_DOS_HEADER {
-
     pub e_magic: u16,
     pub e_cblp: u16,
     pub e_cp: u16,
@@ -100,7 +99,6 @@ pub union IMAGE_SECTION_HEADER_0 {
 
 #[repr(C, packed(4))]
 pub struct IMAGE_OPTIONAL_HEADER64 {
-
     pub Magic: IMAGE_OPTIONAL_HEADER_MAGIC,
     pub MajorLinkerVersion: u8,
     pub MinorLinkerVersion: u8,
