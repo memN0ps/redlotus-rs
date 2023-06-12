@@ -1,16 +1,17 @@
 use core::{slice::from_raw_parts, mem::size_of, ptr::copy_nonoverlapping};
-use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_PHYSICAL_MEMORY, MAPPER_DATA_SIZE};
+use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_PHYSICAL_MEMORY, MAPPER_DATA_SIZE, MAPPER_DATA_HASH};
 use self::headers::{PIMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, PIMAGE_NT_HEADERS64, IMAGE_NT_SIGNATURE, IMAGE_DIRECTORY_ENTRY_EXPORT, PIMAGE_EXPORT_DIRECTORY, IMAGE_DIRECTORY_ENTRY_BASERELOC, PIMAGE_BASE_RELOCATION, IMAGE_BASE_RELOCATION, IMAGE_REL_BASED_DIR64, IMAGE_REL_BASED_HIGHLOW, IMAGE_DIRECTORY_ENTRY_IMPORT, PIMAGE_IMPORT_DESCRIPTOR, IMAGE_IMPORT_DESCRIPTOR, PIMAGE_THUNK_DATA64, PIMAGE_SECTION_HEADER, PIMAGE_IMPORT_BY_NAME};
 mod headers;
 
 /// Manually map Windows kernel driver and get address of entry point
 pub unsafe fn manually_map(ntoskrnl_base: *mut u8, target_module_entry_point: *mut u8) -> Option<*mut u8>
 {
+    log::info!("[*] Manual Mapper called!\n\n");
     let module_base = DRIVER_PHYSICAL_MEMORY as *mut u8;
     let new_module_base = ALLOCATED_BUFFER as *mut u64 as *mut u8;
 
-    log::info!("[+] Physical Driver Memory: {:p}", module_base);
-    log::info!("[+] Manually Mapped Virtual Memory: {:p}", new_module_base);
+    log::info!("[+] RedLotus.sys Physical Memory: {:p}", module_base);
+    log::info!("[+] RedLotus.sys Virtual Memory: {:p}", new_module_base);
 
     // Copy DOS/NT headers to newly allocated memory
     copy_headers(module_base, new_module_base).expect("Failed to copy headers");
@@ -32,8 +33,8 @@ pub unsafe fn manually_map(ntoskrnl_base: *mut u8, target_module_entry_point: *m
 
     log::info!("[+] Finished manual mapping!");
 
-    // Store the target module entry point in the new module base's export address table (DriverEntry) (mapper_data: 0xd007e143)
-    hook_export_address_table(new_module_base, 0xd007e143, target_module_entry_point).expect("Failed to hook export address table");
+    // Store the target module entry point in the new module base's export address table (DriverEntry)
+    hook_export_address_table(new_module_base, MAPPER_DATA_HASH, target_module_entry_point).expect("Failed to hook export address table");
     log::info!("[+] Hooked export address table (EAT)");
 
     let nt_headers = get_nt_headers(new_module_base).expect("Failed to get NT headers");
@@ -61,14 +62,13 @@ pub unsafe fn hook_export_address_table(module_base: *mut u8, export_hash: u32, 
         // Ordinal 0: __CxxFrameHandler3
         // Ordinal 1: _fltused
         // Ordinal 2: driver_entry    
-        // Ordinal 3: mapper_data
+        // Ordinal 3: <exported function>
         if export_hash == dbj2_hash(name_slice) 
         {
             let ordinal = ordinals[i as usize] as usize;
 
-            // Copy the original bytes of the target module to the export function mapper_data
+            // Copy the original bytes of the target module to the export function
             let mapper_data_addy = (module_base as usize + functions[ordinal] as usize) as *mut u8;
-            log::info!("[+] Mapper Data Addy (Stolen Bytes) stored in mapped driver: {:p}", mapper_data_addy);
             copy_nonoverlapping(target_base, mapper_data_addy, MAPPER_DATA_SIZE);
 
             return Some(());

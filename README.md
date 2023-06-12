@@ -2,11 +2,9 @@
 
 Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) similar to [umap by @btbd](https://github.com/btbd/umap/).
 
-A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections. While it's possible to use this for advanced adversary simulation or emulation (red teaming), it's unlikely to be used in most engagements. This tool can also be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. One important capability of this tool is its ability to load a kernel driver before the operating system or even execute shellcode in the kernel to bypass Windows security protections. It's important to recognize the potential of Rust and not underestimate its power.
-
 This project is inspired by the following:
 
-- umap: https://github.com/btbd/umap/ (This project has been ported from C to Rust)
+- Umap: https://github.com/btbd/umap/ (This project has been ported from C to Rust)
 - Bootlicker: https://github.com/realoriginal/bootlicker
 - BlackLotus: https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
 - ESPecter: https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/
@@ -15,12 +13,14 @@ This project is inspired by the following:
 - Bootkitting Windows Sandbox: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 - Rootkits and Bootkits: https://nostarch.com/rootkits
 
-## TODO
+## Features
 
-- Refactor code
-- Better error handling
-- Provide stability
-- Make a blog or diagram on how it works
+- Manually Maps a Windows kernel driver before `ntoskrnl.exe` is loaded (Driver Signature Enforcement (DSE) is not disabled and Windows Defender's drivers are not patched)
+- TODO: refactor/neaten code and implement better error handling and make stable
+
+## Description
+
+A bootkit can run code before the operating system and potentially inject malicious code into the kernel or load a malicious kernel driver by infecting the boot process and taking over the system's firmware or bootloader, effectively disabling or bypassing security protections. This tool can be used for game hacking and is a side project for those interested in fun, learning, malware research, and spreading security awareness. It also demonstrates that Rust can handle both low-level and high-level tasks. It's important to recognize the potential of Rust and not underestimate its power.
 
 The image below shows how Legacy and UEFI boot works.
 
@@ -156,6 +156,10 @@ load redlotus.efi
 ## PoC
 
 ![poc.png](./images/poc.png)
+
+## Tested
+
+- `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`
 
 ## Credits / References / Thanks / Motivation
 

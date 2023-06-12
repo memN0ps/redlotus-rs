@@ -6,6 +6,7 @@ mod includes;
 pub const JMP_SIZE: usize = 14;
 pub const MAPPER_DATA_SIZE: usize = JMP_SIZE + 7;
 
+// Change if global.rs hash is changed in bootkit
 #[no_mangle]
 pub static mut mapper_data: [u8; MAPPER_DATA_SIZE] = [0; MAPPER_DATA_SIZE];
 
@@ -45,7 +46,7 @@ pub extern "system" fn driver_entry(driver_object: &mut DRIVER_OBJECT, registry_
     /* End of your code (Do the other kernel magic above) */
 
     log::info!("Calling Unhooked DriverEntry....");
-    // Call the original driver entry to restore execution flow (disk.sys)
+    // Call the original driver entry to restore execution flow (target driver)
     unsafe { DriverEntry = Some(core::mem::transmute::<*mut u8, DriverEntryType>(target_module_entry)) };
     return unsafe { DriverEntry.unwrap()(driver_object, registry_path) };
 }

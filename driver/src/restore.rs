@@ -14,7 +14,7 @@ pub fn magic(target_module_entry: *mut u8) {
     KernelLogger::init(LevelFilter::Info).expect("Failed to initialize logger");
     
     log::info!("[+] Driver Entry called");
-    log::info!("[+] Disk.sys DriverEntry Address: {:p}", target_module_entry);
+    log::info!("[+] Target Driver DriverEntry Address: {:p}", target_module_entry);
     log::info!("[+] Stolen Bytes Address: {:p}", unsafe { mapper_data.as_ptr() });
 
     /* Force to 1 CPU */

