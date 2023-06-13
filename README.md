@@ -153,14 +153,18 @@ load redlotus.efi
 
 8. Windows should boot automatically.
 
-## PoC
+## Tested PoC
 
-![poc.png](./images/poc.png)
+`Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`:
 
-## Tested
+![poc_win10.png](./images/poc_win10.png)
 
-- `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`
-- `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
+`Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
+
+![poc_win11.png](./images/poc_win11.png)
+
+Note: You may have to change the signature of the hooked `bootmgfw.efi` and `winload.efi` functions depending on your Windows build and version.
+
 
 ## Credits / References / Thanks / Motivation
 
