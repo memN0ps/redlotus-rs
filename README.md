@@ -153,13 +153,17 @@ load redlotus.efi
 
 8. Windows should boot automatically.
 
-## Tested PoC
+## Example of PoC
 
-`Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`:
+`UEFI Shell`
+
+![poc_uefi.png](./images/poc_uefi.png)
+
+Tested on `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`:
 
 ![poc_win10.png](./images/poc_win10.png)
 
-`Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
+Tested on `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
 
 ![poc_win11.png](./images/poc_win11.png)
 
