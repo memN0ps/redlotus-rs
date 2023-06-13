@@ -27,7 +27,7 @@ static _FLTUSED: i32 = 0;
 #[allow(unused_imports)]
 use core::panic::PanicInfo;
 
-use crate::restore::magic;
+use crate::restore::restore_bytes;
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -49,13 +49,13 @@ pub extern "system" fn driver_entry(
 ) -> NTSTATUS {
     // When manually mapping a driver you don't call driver_unload. You restart the system instead.
     /* Restore execution flow and hooked functions */
-    magic(target_module_entry);
+    restore_bytes(target_module_entry);
 
     /* Your code goes here ( Do the other kernel magic below) */
 
     /* End of your code (Do the other kernel magic above) */
 
-    log::info!("Calling Unhooked DriverEntry....");
+    log::info!("[+] Executing unhooked DriverEntry of target driver...");
     // Call the original driver entry to restore execution flow (target driver)
     unsafe {
         DriverEntry = Some(core::mem::transmute::<*mut u8, DriverEntryType>(
