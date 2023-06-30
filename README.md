@@ -138,6 +138,20 @@ load redlotus.efi
 
 8. Windows should boot automatically.
 
+9. Manually map your Windows kernel driver using the user-mode application (`client.exe`) even with `Driver Signature Enforcement (DSE)` enabled.
+
+```
+PS C:\Users\developer\Desktop> .\client.exe -h
+Manually Map Windows Kernel Driver
+
+Usage: client.exe --path <PATH>
+
+Options:
+  -p, --path <PATH>  The Windows kernel driver path to be manually mapped
+  -h, --help         Print help
+  -V, --version      Print version
+```
+
 ## Example of PoC
 
 `UEFI Shell`
@@ -151,6 +165,16 @@ Tested on `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`:
 Tested on `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
 
 ![poc_win11.png](./images/poc_win11.png)
+
+Manually map any Windows kernel driver, even with `Driver Signature Enforcement (DSE)` enabled.
+
+```
+PS C:\Users\developer\Desktop> .\client.exe --path .\testing123.sys
+[+] Driver pointer: 0x2c12fe5fc00
+[+] Magic bytes: 0xdeadbeef
+[+] Driver manually mapped successfully!
+PS C:\Users\developer\Desktop>
+```
 
 Successfully manually mapped a Windows kernel driver using the driver manual mapper.
 
