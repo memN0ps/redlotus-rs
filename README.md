@@ -24,21 +24,9 @@ The image below shows how Legacy and UEFI boot works.
 ![Legacy-and-UEFI-Boot](/images/Legacy-and-UEFI-Boot.png)
 **Figure 1. Comparison of the Legacy Boot flow (left) and UEFI boot flow (right) on Windows (Vista and newer) systems (Full Credits: [WeLiveSecurity](https://www.welivesecurity.com/2021/10/05/uefi-threats-moving-esp-introducing-especter-bootkit/))**
 
-This diagram illustrates the structure and flow of the RedLotus.efi UEFI bootkit (RedLotus.sys is the Windows kernel driver)
+This diagram illustrates the structure and flow of the `redlotus.efi` UEFI bootkit and `redlotus.sys` Windows kernel driver manual mapper.
 
-```mermaid
-graph TD;
-    R["RedLotus.efi bootkit runtime driver (EFI_RUNTIME_DRIVER)"] -->|Hooks| A["ImgArchStartBootApplication (bootmgfw.efi)"];
-    A["ImgArchStartBootApplication (bootmgfw.efi)"] -->|Hooks| B["BlImgAllocateImageBuffer (winload.efi)"];
-    B -->|Allocates Buffer| G[RedLotus.sys];
-    A -->|Hooks| C["OslFwpKernelSetupPhase1 (winload.efi)"];
-    C -->|Calls| D[Manual Mapper];
-    D -->|Maps | G[RedLotus.sys]
-    C -->|Hooks| E[Disk.sys];
-    E -->|Calls| G[RedLotus.sys];
-    G -->|Restores| E;
-```
-
+![redlotus.drawio.png](./images/redlotus.drawio.png)
 
 ## Install
 
