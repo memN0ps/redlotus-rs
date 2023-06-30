@@ -156,8 +156,7 @@ Successfully manually mapped a Windows kernel driver using the driver manual map
 
 ![poc_win11_driver_mapper.png](./images/poc_win11_driver_mapper.png)
 
-Note: You may have to change the signature of the hooked `bootmgfw.efi` and `winload.efi` functions depending on your Windows build and version.
-
+Note: You may have to change the signature of the hooked `bootmgfw.efi` and `winload.efi` functions depending on your Windows build and version, as well as the .data function pointer signature in `ntoskrnl.exe`
 
 ## Credits / References / Thanks / Motivation
 
