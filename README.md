@@ -1,6 +1,8 @@
 # Windows UEFI Bootkit in Rust (Codename: RedLotus)
 
-Windows UEFI bootkit in Rust for manually mapping a [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) similar to [umap by @btbd](https://github.com/btbd/umap/).
+Windows UEFI Bootkit in Rust for manually mapping a driver manual mapper before `ntoskrnl.exe` is loaded to bypass `Driver Signature Enforcement (DSE)`, using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) similar to [umap by @btbd](https://github.com/btbd/umap/). The driver manual mapper allows you to manually map other Windows kernel drivers via a user-mode program using a simple `.data` function pointer hook for communication. It's important to note that the communication method involving `xKdEnumerateDebuggingDevices` and `NtConvertBetweenAuxiliaryCounterAndPerformanceCounter` has been detected by anti-cheat systems. Therefore, I must emphasize that this project is a Proof of Concept (PoC).
+
+It is possible to manually map my [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) with minor modifications.
 
 This project is inspired by the following:
 
@@ -12,11 +14,6 @@ This project is inspired by the following:
 - EfiGuard: https://github.com/Mattiwatti/EfiGuard
 - Bootkitting Windows Sandbox: https://secret.club/2022/08/29/bootkitting-windows-sandbox.html
 - Rootkits and Bootkits: https://nostarch.com/rootkits
-
-## Features
-
-- Manually Maps a Windows kernel driver before `ntoskrnl.exe` is loaded (Driver Signature Enforcement (DSE) is not disabled and Windows Defender's drivers are not patched)
-- TODO: refactor/neaten code and implement better error handling and make stable
 
 ## Description
 
@@ -167,6 +164,10 @@ Tested on `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
 
 ![poc_win11.png](./images/poc_win11.png)
 
+Successfully manually mapped a Windows kernel driver using the driver manual mapper.
+
+![poc_win11_driver_mapper.png](./images/poc_win11_driver_mapper.png)
+
 Note: You may have to change the signature of the hooked `bootmgfw.efi` and `winload.efi` functions depending on your Windows build and version.
 
 
@@ -267,3 +268,17 @@ Note: You may have to change the signature of the hooked `bootmgfw.efi` and `win
 * https://www.vergiliusproject.com/
 
 * thanks [jonaslyk](https://twitter.com/jonasLyk) for providing the correct function signature for `BlImgAllocateImageBuffer` :)
+
+* idontcode aka @_xeroxz: https://blog.back.engineering/08/06/2020/
+
+* can1357: https://www.unknowncheats.me/forum/2614582-post12.html
+
+* https://www.unknowncheats.me/forum/anti-cheat-bypass/503521-data-ptr.html
+
+* https://www.unknowncheats.me/forum/anti-cheat-bypass/425352-driver-communication-using-data-ptr-called-function.html
+
+* https://git.back.engineering/gmh5225/ida-find-.data-ptr
+
+* https://www.unknowncheats.me/forum/general-programming-and-reversing/582086-simple-ida-python-script-data-ptr.html
+
+* https://www.unknowncheats.me/forum/programming-for-beginners/193545-trying-sig-offset-ida.html

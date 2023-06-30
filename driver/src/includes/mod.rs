@@ -4,10 +4,11 @@
 
 use kernel_alloc::nt::MEMORY_CACHING_TYPE;
 use winapi::{
+    ctypes::c_void,
     km::wdm::{KPROCESSOR_MODE, PEPROCESS, PIRP},
     shared::{
-        minwindef::ULONG,
-        ntdef::{BOOLEAN, CSHORT, PVOID},
+        minwindef::{PULONG, ULONG},
+        ntdef::{BOOLEAN, CSHORT, NTSTATUS, PVOID},
     },
 };
 
@@ -62,6 +63,32 @@ extern "system" {
     /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-iofreemdl
     /// The IoFreeMdl routine releases a caller-allocated memory descriptor list (MDL).
     pub fn IoFreeMdl(Mdl: PMDL);
+
+    /// https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+    /// Retrieves the specified system information.
+    pub fn ZwQuerySystemInformation(
+        system_information_class: SystemInformationClass,
+        system_information: PVOID,
+        system_information_length: ULONG,
+        return_length: PULONG,
+    ) -> NTSTATUS;
+
+    /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-exgetpreviousmode
+    pub fn ExGetPreviousMode() -> KPROCESSOR_MODE;
+
+    /// Undocumented
+    pub fn PsGetCurrentProcess() -> PEPROCESS;
+
+    /// Undocumented
+    pub fn MmCopyVirtualMemory(
+        from_process: PEPROCESS,
+        from_address: *mut c_void,
+        to_process: PEPROCESS,
+        to_address: *mut c_void,
+        size: usize,
+        previous_mode: KPROCESSOR_MODE,
+        bytes_copied: &mut usize,
+    ) -> NTSTATUS;
 }
 
 #[repr(u32)]
@@ -94,4 +121,31 @@ pub enum _MM_PAGE_PRIORITY {
     LowPagePriority = 0,
     NormalPagePriority = 16,
     HighPagePriority = 32,
+}
+
+#[repr(C)]
+pub enum SystemInformationClass {
+    SystemModuleInformation = 11,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct SystemModuleInformation {
+    pub modules_count: u32,
+    pub modules: [SystemModule; 256],
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct SystemModule {
+    pub section: *mut c_void,
+    pub mapped_base: *mut c_void,
+    pub image_base: *mut c_void,
+    pub size: u32,
+    pub flags: u32,
+    pub index: u8,
+    pub name_length: u8,
+    pub load_count: u8,
+    pub path_length: u8,
+    pub image_name: [u8; 256],
 }

@@ -1,10 +1,24 @@
 #![no_std]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+
+extern crate alloc;
+use kernel_log::KernelLogger;
+use log::LevelFilter;
 use winapi::{
     km::wdm::DRIVER_OBJECT,
     shared::ntdef::{NTSTATUS, UNICODE_STRING},
 };
+mod hooks;
 mod includes;
+mod mapper;
+mod pe;
 mod restore;
+use crate::{hooks::setup_hooks, restore::restore_bytes};
+
+#[allow(unused_imports)]
+use core::panic::PanicInfo;
 
 pub const JMP_SIZE: usize = 14;
 pub const MAPPER_DATA_SIZE: usize = JMP_SIZE + 7;
@@ -24,21 +38,15 @@ static GLOBAL: kernel_alloc::KernelAlloc = kernel_alloc::KernelAlloc;
 #[export_name = "_fltused"]
 static _FLTUSED: i32 = 0;
 
-#[allow(unused_imports)]
-use core::panic::PanicInfo;
-
-use crate::restore::restore_bytes;
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-#[allow(non_camel_case_types)]
 type DriverEntryType =
     fn(driver_object: &mut DRIVER_OBJECT, registry_path: &UNICODE_STRING) -> NTSTATUS;
 
-#[allow(non_upper_case_globals)]
 static mut DriverEntry: Option<DriverEntryType> = None;
 
 #[no_mangle]
@@ -47,13 +55,16 @@ pub extern "system" fn driver_entry(
     registry_path: &UNICODE_STRING,
     target_module_entry: *mut u8,
 ) -> NTSTATUS {
-    // When manually mapping a driver you don't call driver_unload. You restart the system instead.
-    /* Restore execution flow and hooked functions */
+    KernelLogger::init(LevelFilter::Info).expect("Failed to initialize logger");
+    log::info!("[+] Driver Entry called");
+
+    /* Restores the stolen bytes */
     restore_bytes(target_module_entry);
 
-    /* Your code goes here ( Do the other kernel magic below) */
+    /* Perform a simple .data function pointer hook */
+    setup_hooks();
 
-    /* End of your code (Do the other kernel magic above) */
+    //driver_object.DriverUnload = Some(driver_unload);
 
     log::info!("[+] Executing unhooked DriverEntry of target driver...");
     // Call the original driver entry to restore execution flow (target driver)
@@ -64,3 +75,10 @@ pub extern "system" fn driver_entry(
     };
     return unsafe { DriverEntry.unwrap()(driver_object, registry_path) };
 }
+
+// When manually mapping a driver you don't call driver_unload. You restart the system instead.
+/*
+pub extern "system" fn driver_unload(_driver: &mut DRIVER_OBJECT) {
+    log::info!("Driver unloaded successfully!");
+}
+*/

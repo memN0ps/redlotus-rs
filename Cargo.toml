@@ -3,6 +3,7 @@
 members = [
     "bootkit",
     "driver",
+    "client",
 ]
 
 resolver = "2"

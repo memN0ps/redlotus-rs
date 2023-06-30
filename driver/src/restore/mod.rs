@@ -2,21 +2,15 @@ use core::ptr::{copy_nonoverlapping, null_mut};
 
 use crate::includes::LOCK_OPERATION::IoModifyAccess;
 use crate::includes::_MM_PAGE_PRIORITY::HighPagePriority;
-use kernel_alloc::nt::MEMORY_CACHING_TYPE::MmNonCached;
-use kernel_log::KernelLogger;
-use log::LevelFilter;
-use winapi::km::wdm::KPROCESSOR_MODE::KernelMode;
-
 use crate::includes::{IoFreeMdl, MmMapLockedPagesSpecifyCache, MmUnlockPages, MmUnmapLockedPages};
 use crate::{
     includes::{IoAllocateMdl, MmProbeAndLockPages},
     mapper_data,
 };
+use kernel_alloc::nt::MEMORY_CACHING_TYPE::MmNonCached;
+use winapi::km::wdm::KPROCESSOR_MODE::KernelMode;
 
 pub fn restore_bytes(target_module_entry: *mut u8) {
-    KernelLogger::init(LevelFilter::Info).expect("Failed to initialize logger");
-
-    log::info!("[+] Driver Entry called");
     log::info!(
         "[+] Target Driver DriverEntry Address: {:p}",
         target_module_entry
@@ -25,23 +19,10 @@ pub fn restore_bytes(target_module_entry: *mut u8) {
         mapper_data.as_ptr()
     });
 
-    /* Force to 1 CPU */
-    //unsafe { KeSetSystemAffinityThread(1) };
-
-    /* Remove write protection */
-    // Credits Austin Hudson: https://github.com/realoriginal/bootlicker/blob/master/bootkit/DrvMain.c#L116
-    //log::info!("[+] Write protection removed");
-    //disable_write_protect();
-
     // Restore stolen bytes before we do anything else
     unsafe { memcopywp(target_module_entry) };
 
     log::info!("[+] Stolen bytes restored");
-
-    /* Insert write protection */
-    // Credits Austin Hudson: https://github.com/realoriginal/bootlicker/blob/master/bootkit/DrvMain.c#L128
-    //log::info!("[+] Write protection restored");
-    //enable_write_protect();
 }
 
 /// Credits: btbd's umap: https://github.com/btbd/umap/blob/master/mapper/util.c#L117
