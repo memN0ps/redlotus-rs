@@ -68,6 +68,12 @@ Change directory to `.\bootkit\` and build bootkit
 cargo build --target x86_64-unknown-uefi --release
 ```
 
+Change directory to `.\client\` and build client
+
+```
+cargo build --release
+```
+
 ## Usage
 
 A UEFI Bootkit works under one or more of the following conditions:
@@ -170,10 +176,9 @@ Manually map any Windows kernel driver, even with `Driver Signature Enforcement 
 
 ```
 PS C:\Users\developer\Desktop> .\client.exe --path .\testing123.sys
-[+] Driver pointer: 0x2c12fe5fc00
+[+] Driver pointer: 0x22010dffc00
 [+] Magic bytes: 0xdeadbeef
-[+] Driver manually mapped successfully!
-PS C:\Users\developer\Desktop>
+[+] Driver manually mapped successfully! 0x0
 ```
 
 Successfully manually mapped a Windows kernel driver using the driver manual mapper.
