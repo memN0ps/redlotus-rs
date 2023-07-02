@@ -1,6 +1,6 @@
 # Windows UEFI Bootkit in Rust (Codename: RedLotus)
 
-Windows UEFI Bootkit in Rust for manually mapping a driver manual mapper before `ntoskrnl.exe` is loaded to bypass `Driver Signature Enforcement (DSE)`, using a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) similar to [umap by @btbd](https://github.com/btbd/umap/). The driver manual mapper allows you to manually map other Windows kernel drivers via a user-mode program using a simple `.data` function pointer hook for communication. It's important to note that the communication method involving `xKdEnumerateDebuggingDevices` and `NtConvertBetweenAuxiliaryCounterAndPerformanceCounter` has been detected by anti-cheat systems. Therefore, I must emphasize that this project is a Proof of Concept (PoC).
+Introducing a Windows UEFI Bootkit in Rust designed to facilitate the manual mapping of a driver manual mapper before the kernel (`ntoskrnl.exe`) is loaded, effectively bypassing `Driver Signature Enforcement (DSE)`. This bootkit utilizes a UEFI runtime driver (`EFI_RUNTIME_DRIVER`) inspired by the work of [umap by @btbd](https://github.com/btbd/umap/). By employing a straightforward `.data` function pointer hook, the driver manual mapper enables the manual mapping of various Windows kernel drivers via a user-mode program. It is important to acknowledge that the communication method involving `xKdEnumerateDebuggingDevices` and `NtConvertBetweenAuxiliaryCounterAndPerformanceCounter`, originally shared by the legendary [@can1357](https://blog.can.ac/), may be flagged by anti-cheat systems. Hence, it is crucial to emphasize that this project serves as a Proof of Concept (PoC).
 
 It is possible to manually map my [Windows kernel rootkit](https://github.com/memN0ps/rootkit-rs) or [Windows blue-pill hypervisor](https://github.com/memN0ps/hypervisor-rs) with minor modifications.
 
@@ -158,34 +158,26 @@ Options:
   -V, --version      Print version
 ```
 
-## Example of PoC
+## PoC
 
-`UEFI Shell`
+Tested on: 
+
+* `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`
+* `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
+
+This image demonstrates the loading of the bootkit (`redlotus.efi`) from a UEFI Shell.
 
 ![poc_uefi.png](./images/poc_uefi.png)
 
-Tested on `Microsoft Windows 10 Home 10.0.19045 N/A Build 19045`:
-
-![poc_win10.png](./images/poc_win10.png)
-
-Tested on `Microsoft Windows 11 Home 10.0.22621 N/A Build 22621`
+This image depicts the successful manual mapping of the driver manual mapper (`redlotus.sys`).
 
 ![poc_win11.png](./images/poc_win11.png)
 
-Manually map any Windows kernel driver, even with `Driver Signature Enforcement (DSE)` enabled.
-
-```
-PS C:\Users\developer\Desktop> .\client.exe --path .\testing123.sys
-[+] Driver pointer: 0x22010dffc00
-[+] Magic bytes: 0xdeadbeef
-[+] Driver manually mapped successfully! 0x0
-```
-
-Successfully manually mapped a Windows kernel driver using the driver manual mapper.
+This image showcases the successful manual mapping of a Windows kernel driver (`testing123.sys`), which could be written in any language such as C or Rust. It demonstrates the utilization of the user-mode application (`client.exe`) to communicate with the driver manual mapper (`redlotus.sys`).
 
 ![poc_win11_driver_mapper.png](./images/poc_win11_driver_mapper.png)
 
-Note: You may have to change the signature of the hooked `bootmgfw.efi` and `winload.efi` functions depending on your Windows build and version, as well as the .data function pointer signature in `ntoskrnl.exe`
+Please note that depending on your Windows build and version, you may need to adjust the signatures of the hooked `bootmgfw.efi` and `winload.efi` functions, as well as the `.data` function pointer signature in `ntoskrnl.exe`. These changes are necessary to ensure compatibility and proper functioning with your specific Windows build and version.
 
 ## Credits / References / Thanks / Motivation
 
