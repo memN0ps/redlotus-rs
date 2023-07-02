@@ -293,3 +293,5 @@ Note: You may have to change the signature of the hooked `bootmgfw.efi` and `win
 * https://www.unknowncheats.me/forum/general-programming-and-reversing/582086-simple-ida-python-script-data-ptr.html
 
 * https://www.unknowncheats.me/forum/programming-for-beginners/193545-trying-sig-offset-ida.html
+
+* Thanks [not_matthias](https://github.com/not-matthias), [draven/rmccrystal](https://github.com/rmccrystal), @jessiep_ :)
