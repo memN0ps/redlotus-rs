@@ -1,0 +1,32 @@
+[package]
+name = "testing123"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[dependencies]
+log = "0.4.17" # https://crates.io/crates/log
+kernel-log = "0.1.2" # https://crates.io/crates/kernel-log
+kernel-build = "0.1.0" # https://crates.io/crates/kernel-build
+kernel-alloc = { version = "0.2.1", features = ["pool-tag"] } # https://crates.io/crates/kernel-alloc
+#obfstr = "0.4.1" # https://crates.io/crates/obfstr
+#bstr = { version = "0.2.17", default-features = false} # https://crates.io/crates/bstr
+
+[dependencies.winapi]
+git = "https://github.com/Trantect/winapi-rs.git"
+branch = "feature/km"
+features = [
+    "wdm",
+    "ntstatus",
+]

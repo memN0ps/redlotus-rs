@@ -32,7 +32,7 @@ fn main() {
     match Communication::new() {
         Ok(communication) => match communication.send_request(&mut image_data) {
             Ok(status) => {
-                println!("[+] Driver manually mapped successfully! {:#x}", status); // I did not return the status from kernel mode but you can do that easily.
+                println!("[+] Driver manually mapped successfully! {:#x}", status);
             }
             Err(e) => {
                 println!("[-] Failed to send request: {:?}", e);

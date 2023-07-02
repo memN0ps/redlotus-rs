@@ -89,7 +89,20 @@ extern "system" {
         previous_mode: KPROCESSOR_MODE,
         bytes_copied: &mut usize,
     ) -> NTSTATUS;
+
+    /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-exallocatepool
+    pub fn ExAllocatePool(pool_type: POOL_TYPE, number_of_bytes: usize) -> *mut u64;
+
+    /// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-exfreepool
+    pub fn ExFreePool(pool: u64);
 }
+
+// Credits: https://github.com/microsoft/windows-rs/blob/a817607f4a48c891e4d598b40b8685c59d18743b/crates/libs/sys/src/Windows/Wdk/Foundation/mod.rs#L60
+// https://www.vergiliusproject.com/kernels/x64/Windows%2011/22H2%20(2022%20Update)/_POOL_TYPE
+pub type POOL_TYPE = i32;
+pub const NonPagedPool: POOL_TYPE = 0i32;
+pub const NonPagedPoolExecute: POOL_TYPE = 0i32;
+pub const PagedPool: POOL_TYPE = 1i32;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

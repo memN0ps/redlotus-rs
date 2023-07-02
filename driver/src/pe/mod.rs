@@ -3,7 +3,6 @@ use core::ptr::null_mut;
 use alloc::vec::Vec;
 extern crate alloc;
 use bstr::ByteSlice;
-use kernel_alloc::nt::{ExAllocatePool, ExFreePool};
 use winapi::{
     ctypes::c_void,
     shared::ntdef::NT_SUCCESS,
@@ -15,7 +14,9 @@ use winapi::{
 
 use crate::{
     includes::SystemInformationClass,
-    includes::{SystemModuleInformation, ZwQuerySystemInformation},
+    includes::{
+        ExAllocatePool, ExFreePool, NonPagedPool, SystemModuleInformation, ZwQuerySystemInformation,
+    },
 };
 
 pub fn get_module_base(module_name: &[u8]) -> *mut c_void {
@@ -37,10 +38,8 @@ pub fn get_module_base(module_name: &[u8]) -> *mut c_void {
         return null_mut();
     } */
 
-    let module_info = unsafe {
-        ExAllocatePool(kernel_alloc::nt::PoolType::NonPagedPool, bytes as usize)
-            as *mut SystemModuleInformation
-    };
+    let module_info =
+        unsafe { ExAllocatePool(NonPagedPool, bytes as usize) as *mut SystemModuleInformation };
 
     if module_info.is_null() {
         log::error!("[-] ExAllocatePool failed");

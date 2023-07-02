@@ -1,6 +1,9 @@
-use kernel_alloc::nt::{ExAllocatePool, PoolType};
+use winapi::shared::ntdef::NTSTATUS;
 
-use crate::pe::get_module_base;
+use crate::{
+    includes::{ExAllocatePool, NonPagedPoolExecute},
+    pe::get_module_base,
+};
 
 use self::headers::{
     IMAGE_BASE_RELOCATION, IMAGE_DIRECTORY_ENTRY_BASERELOC, IMAGE_DIRECTORY_ENTRY_EXPORT,
@@ -10,22 +13,25 @@ use self::headers::{
     PIMAGE_SECTION_HEADER, PIMAGE_THUNK_DATA64,
 };
 
-use core::{mem::size_of, slice::from_raw_parts};
+use core::{mem::size_of, ptr::null_mut, slice::from_raw_parts};
 mod headers;
 
 /// Manually map Windows kernel driver and get address of entry point
-pub unsafe fn manually_map(module_base: *mut u8) -> Option<*mut u8> {
+pub unsafe fn manually_map(module_base: *mut u8) -> Option<i32> {
     log::info!("[*] ### Kernel Manual Mapper ###");
 
     let nt_headers = get_nt_headers(module_base).expect("Failed to get NT headers");
 
     // Allocate memory for the kernel driver in kernel space
     let new_module_base = ExAllocatePool(
-        PoolType::NonPagedPoolExecute,
+        NonPagedPoolExecute,
         (*nt_headers).OptionalHeader.SizeOfImage as usize,
     ) as *mut u8;
 
-    log::info!("[+] Manually mapped driver base address: {:p}", new_module_base);
+    log::info!(
+        "[+] Manually mapped driver base address: {:p}",
+        new_module_base
+    );
 
     // Copy DOS/NT headers to newly allocated memory
     copy_headers(module_base, new_module_base).expect("Failed to copy headers");
@@ -57,7 +63,21 @@ pub unsafe fn manually_map(module_base: *mut u8) -> Option<*mut u8> {
         + (*nt_headers).OptionalHeader.AddressOfEntryPoint as usize)
         as *mut u8;
 
-    return Some(manually_mapped_driver_entry);
+    log::info!(
+        "[!] Manually mapped driver entry: {:#p}",
+        manually_mapped_driver_entry
+    );
+
+    type DriverEntryType = fn(driver_object: *mut u8, registry_path: *mut u8) -> NTSTATUS;
+    let DriverEntry =
+        unsafe { core::mem::transmute::<_, DriverEntryType>(manually_mapped_driver_entry) };
+
+    // Call the driver entry point and return the status
+    log::info!("[!] Calling driver entry point...");
+    let status = DriverEntry(new_module_base, null_mut());
+    log::info!("[+] Driver entry point returned: {:#x}", status);
+
+    return Some(status);
 }
 
 /// Get a pointer to IMAGE_DOS_HEADER

@@ -1,8 +1,6 @@
 use alloc::vec::Vec;
 extern crate alloc;
 use includes::ExGetPreviousMode;
-use kernel_alloc::nt::{ExAllocatePool, ExFreePool, PoolType};
-
 use mapper::manually_map;
 use winapi::{
     km::wdm::KPROCESSOR_MODE::UserMode,
@@ -15,7 +13,7 @@ use winapi::{
 use core::slice::from_raw_parts;
 
 use crate::{
-    includes,
+    includes::{self, ExAllocatePool, ExFreePool, NonPagedPool},
     mapper::{self, get_nt_headers},
     pe::{get_module_base, pattern_scan},
 };
@@ -31,7 +29,10 @@ pub fn setup_hooks() {
         unsafe { get_nt_headers(ntoskrnl_address as _).expect("Failed to get kernel nt headers") };
     let ntoskrnl_size = unsafe { (*nt_headers).OptionalHeader.SizeOfImage };
 
-    log::info!("[+] ntoskrnl.exe address: 0x{:x}", ntoskrnl_address as usize);
+    log::info!(
+        "[+] ntoskrnl.exe address: 0x{:x}",
+        ntoskrnl_address as usize
+    );
     log::info!("[+] ntoskrnl.exe size: 0x{:x}", ntoskrnl_size);
 
     // Read Windows kernel (ntoskrnl.exe) from memory and store in a slice
@@ -161,7 +162,7 @@ pub fn HalDispatchHook(image_data: *mut IMAGE_DATA, out_status: *mut i32) -> NTS
     log::info!("[+] Allocating kernel buffer");
 
     let unmapped_driver_kernel_buffer =
-        unsafe { ExAllocatePool(PoolType::NonPagedPool, (*image_data).buffer.len()) };
+        unsafe { ExAllocatePool(NonPagedPool, (*image_data).buffer.len()) };
 
     if unmapped_driver_kernel_buffer.is_null() {
         log::info!("[-] Failed to call ExAllocatePool");
@@ -182,22 +183,18 @@ pub fn HalDispatchHook(image_data: *mut IMAGE_DATA, out_status: *mut i32) -> NTS
         unmapped_driver_kernel_buffer
     );
 
-    let Some(mapped_driver_entry) = (unsafe { manually_map(unmapped_driver_kernel_buffer as _) }) else {
+    // Manually map the driver and call driver entry and return the status
+    let Some(status) = (unsafe { manually_map(unmapped_driver_kernel_buffer as _) }) else {
         log::info!("[-] Failed to manually map kernel driver");
         unsafe { ExFreePool(unmapped_driver_kernel_buffer as _) };
         unsafe { *out_status = STATUS_ACCESS_VIOLATION };
         return STATUS_SUCCESS;
     };
 
-    log::info!(
-        "[!] Manually mapped driver entry: {:#p}",
-        mapped_driver_entry
-    );
-    
     log::info!("Done!");
     log::info!("[+] Freeing unmapped driver memory");
     unsafe { ExFreePool(unmapped_driver_kernel_buffer as _) };
-    unsafe { *out_status = STATUS_SUCCESS as _ };
+    unsafe { *out_status = status };
 
     log::info!("[+] HalDispatchHook ended!");
     return STATUS_SUCCESS;
