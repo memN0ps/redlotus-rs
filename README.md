@@ -74,6 +74,54 @@ Change directory to `.\client\` and build client
 cargo build --release
 ```
 
+## Debugging (Optional)
+
+### 1. [Enabling Test Mode or Test Signing Mode](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option)
+
+To enable `Test Mode` or `Test Signing Mode`, open an elevated command prompt and enter the following command:
+
+```
+bcdedit /set testsigning on
+```
+
+### 2. [Enabling Debugging of Windows Boot Manager (bootmgfw.efi), Windows OS Boot Loader (winload.efi), and Windows Kernel (ntoskrnl.exe)](https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--bootdebug)
+
+The commands below enable debugging for the Windows Boot Manager, the boot loader, and the operating system's kernel. Using this combination allows for debugging at every startup stage. If activated, the target computer will break into the debugger three times: when the Windows Boot Manager loads, when the boot loader loads, and when the operating system starts. Enter the following commands in an elevated command prompt:
+
+```
+bcdedit /bootdebug {bootmgr} on
+bcdedit /bootdebug on
+bcdedit /debug on
+```
+
+### 3. [Setting Up Network Debugging for Windbg](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-a-network-debugging-connection)
+
+To set up network debugging, open an elevated command prompt and enter the command below. Replace `w.x.y.z` with the IP address of the host computer and `n` with your chosen port number:
+
+```
+bcdedit /dbgsettings net hostip:w.x.y.z port:n
+```
+
+### 4. [Setting Up Debug Print Filter](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/reading-and-filtering-debugging-messages#setting-the-component-filter-mask)
+
+Open the Windows registry editor by entering the following command in an elevated command prompt:
+
+```
+regedit
+```
+
+For more focused and efficient kernel development troubleshooting, set up filters to selectively display debugging messages by following these steps:
+
+1. Navigate to:
+
+```
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager
+```
+2. Create a new key named `Debug Print Filter`.
+3. Inside this key, create a new `DWORD (32) Value`.
+4. Name it `DEFAULT`.
+5. Set its `Value data` to `8`.
+
 ## Usage
 
 A UEFI Bootkit works under one or more of the following conditions:
@@ -84,18 +132,22 @@ A UEFI Bootkit works under one or more of the following conditions:
 
 - Exploiting an unspecified flaw in the UEFI firmware to disable Secure Boot (0-day/zero-day vulnerability).
 
-### Usage 1: Infect Windows Boot Manager `bootmgfw.efi` on Disk (Unsupported)
+## Usage 1: Infecting the Windows Boot Manager (bootmgfw.efi) on Disk (Unsupported)
 
-Typically UEFI Bootkits infect the Windows Boot Manager `bootmgfw.efi` located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi` (`C:\Windows\Boot\EFI\bootmgfw.efi`. Modification of the bootloader includes adding a new section called `.efi` to the Windows Boot Manager `bootmgfw.efi`, and changing the executable's entry point address so program flow jumps to the beginning of the added section as shown below:
+UEFI Bootkits typically target the Windows Boot Manager (`bootmgfw.efi`) found in the EFI partition at `\EFI\Microsoft\Boot\bootmgfw.efi` (also accessible at `C:\Windows\Boot\EFI\bootmgfw.efi`). The infection process involves adding a new section named `.efi` to the `bootmgfw.efi` and redirecting the executable's entry point to this new section. Here's a step-by-step breakdown:
 
-- Convert bootkit to position-independent code (PIC) or shellcode
-- Find `bootmgfw.efi` (Windows Boot Manager) located in EFI partition `\EFI\Microsoft\Boot\bootmgfw.efi`
-- Add `.efi` section to `bootmgfw.efi` (Windows Boot Manager)
-- Inject or copy bootkit shellcode to the `.efi` section in `bootmgfw.efi` (Windows Boot Manager)
-- Change entry point of the `bootmgfw.efi` (Windows Boot Manager) to newly added `.efi` section bootkit shellcode
-- Reboot
+1. Convert the bootkit into position-independent code (PIC) or shellcode.
+2. Locate `bootmgfw.efi` (Windows Boot Manager) in the EFI partition at `\EFI\Microsoft\Boot\bootmgfw.efi`.
+3. Append a new `.efi` section to the `bootmgfw.efi`.
+4. Inject or copy the bootkit shellcode into the newly added `.efi` section.
+5. Modify the entry point of `bootmgfw.efi` to point to the shellcode in the `.efi` section.
+6. Reboot the system.
+
+**Note**: This method is unsupported.
 
 ### Usage 2: Execute UEFI Bootkit via UEFI Shell (Supported)
+
+The following outlines a supported method to execute a UEFI Bootkit using the UEFI Shell. By leveraging either the EDK2 efi shell or the UEFI-Shell, users can set up a USB drive to boot into a UEFI shell environment. From there, the bootkit can be loaded and executed directly. The steps also include specific instructions for users working with VMware Workstation.
 
 Download [EDK2 efi shell](https://github.com/tianocore/edk2/releases) or [UEFI-Shell](https://github.com/pbatard/UEFI-Shell/releases) and follow these steps:
 
@@ -292,3 +344,5 @@ Please note that depending on your Windows build and version, you may need to ad
 * https://www.unknowncheats.me/forum/programming-for-beginners/193545-trying-sig-offset-ida.html
 
 * Thanks [not_matthias](https://github.com/not-matthias), [draven/rmccrystal](https://github.com/rmccrystal), @jessiep_ :)
+
+* Thanks [Idov31](https://github.com/Idov31) for this link: https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--bootdebug
