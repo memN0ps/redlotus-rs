@@ -132,7 +132,7 @@ A UEFI Bootkit works under one or more of the following conditions:
 
 - Exploiting an unspecified flaw in the UEFI firmware to disable Secure Boot (0-day/zero-day vulnerability).
 
-## Usage 1: Infecting the Windows Boot Manager (bootmgfw.efi) on Disk (Unsupported)
+### Usage 1: Infecting the Windows Boot Manager (bootmgfw.efi) on Disk (Unsupported)
 
 UEFI Bootkits typically target the Windows Boot Manager (`bootmgfw.efi`) found in the EFI partition at `\EFI\Microsoft\Boot\bootmgfw.efi` (also accessible at `C:\Windows\Boot\EFI\bootmgfw.efi`). The infection process involves adding a new section named `.efi` to the `bootmgfw.efi` and redirecting the executable's entry point to this new section. Here's a step-by-step breakdown:
 
@@ -145,7 +145,7 @@ UEFI Bootkits typically target the Windows Boot Manager (`bootmgfw.efi`) found i
 
 **Note**: This method is unsupported.
 
-### Usage 2: Execute UEFI Bootkit via UEFI Shell (Supported)
+### Usage 2: Running a UEFI Bootkit through the UEFI Shell (Supported)
 
 The following outlines a supported method to execute a UEFI Bootkit using the UEFI Shell. By leveraging either the EDK2 efi shell or the UEFI-Shell, users can set up a USB drive to boot into a UEFI shell environment. From there, the bootkit can be loaded and executed directly. The steps also include specific instructions for users working with VMware Workstation.
 
